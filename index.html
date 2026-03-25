@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>H3ll</title>
+    <meta name="description" content="H3ll - 3D高難易度回避アクションゲーム">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Noto+Sans+JP:wght@700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+
+        <!-- Title Screen -->
+        <div id="title-screen" class="screen">
+            <h1 class="title">H3ll</h1>
+            <p class="instruction">CLICK TO START</p>
+            <div class="controls-info">
+                <p>マウス移動 → 平面移動</p>
+                <p>左クリック → 上昇</p>
+                <p>右クリック → 下降</p>
+                <p class="tagline">生き残れ。</p>
+            </div>
+        </div>
+
+        <!-- HUD -->
+        <div id="hud" class="hidden">
+            <div id="timer">0.00</div>
+        </div>
+
+        <!-- Death Screen -->
+        <div id="death-screen" class="screen hidden">
+            <h1 id="death-title" class="death-title">YOU DIED</h1>
+            <p id="survival-time" class="survival-time"></p>
+            <p class="restart-instruction">CLICK TO RETRY</p>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module" src="js/main.js"></script>
+</body>
+
+</html>

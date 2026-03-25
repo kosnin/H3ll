@@ -1,0 +1,178 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    overflow: hidden;
+    background: #0a0a0a;
+    font-family: 'Russo One', 'Noto Sans JP', sans-serif;
+}
+
+#game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+#game-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+}
+
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(10, 10, 15, 0.95);
+    z-index: 100;
+    cursor: pointer;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Title Screen */
+.title {
+    font-size: clamp(3.5rem, 12vw, 10rem);
+    color: #fff;
+    text-shadow:
+        0 0 20px rgba(255, 0, 60, 0.6),
+        0 0 60px rgba(255, 0, 60, 0.3);
+    letter-spacing: 0.15em;
+    animation: titleGlow 2s ease-in-out infinite;
+}
+
+@keyframes titleGlow {
+
+    0%,
+    100% {
+        text-shadow:
+            0 0 20px rgba(255, 0, 60, 0.6),
+            0 0 60px rgba(255, 0, 60, 0.3);
+    }
+
+    50% {
+        text-shadow:
+            0 0 30px rgba(255, 0, 60, 0.8),
+            0 0 80px rgba(255, 0, 60, 0.5),
+            0 0 120px rgba(255, 0, 60, 0.2);
+    }
+}
+
+.subtitle {
+    font-size: clamp(2rem, 8vw, 6rem);
+    color: #ff003c;
+    text-shadow: 0 0 30px rgba(255, 0, 60, 0.5);
+    margin-top: -10px;
+    letter-spacing: 0.3em;
+}
+
+.instruction {
+    font-size: 1.4rem;
+    color: #aaa;
+    margin-top: 60px;
+    animation: blink 1s ease-in-out infinite;
+    letter-spacing: 0.2em;
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.2;
+    }
+}
+
+.controls-info {
+    margin-top: 40px;
+    text-align: center;
+    font-size: 1rem;
+    color: #555;
+    line-height: 2;
+    letter-spacing: 0.05em;
+}
+
+.controls-info .tagline {
+    margin-top: 20px;
+    font-size: 1.3rem;
+    color: #ff003c;
+    text-shadow: 0 0 15px rgba(255, 0, 60, 0.4);
+}
+
+/* HUD */
+#hud {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 50;
+    pointer-events: none;
+}
+
+#timer {
+    font-size: 3rem;
+    color: #fff;
+    text-shadow:
+        0 0 10px rgba(255, 255, 255, 0.3);
+    letter-spacing: 0.1em;
+}
+
+/* Death Screen */
+#death-screen {
+    background: rgba(15, 0, 0, 0.95);
+}
+
+.death-title {
+    font-size: clamp(4rem, 15vw, 10rem);
+    color: #ff0033;
+    text-shadow:
+        0 0 40px rgba(255, 0, 51, 0.8),
+        0 0 100px rgba(255, 0, 51, 0.5),
+        0 0 200px rgba(255, 0, 51, 0.3);
+    animation: deathPulse 0.5s ease-in-out 3;
+    letter-spacing: 0.2em;
+}
+
+@keyframes deathPulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.survival-time {
+    font-size: 2.5rem;
+    color: #fff;
+    margin-top: 40px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.restart-instruction {
+    font-size: 1.1rem;
+    color: #666;
+    margin-top: 60px;
+    animation: blink 1s ease-in-out infinite;
+    letter-spacing: 0.2em;
+}
