@@ -30,43 +30,58 @@ class Bullet {
         this.mesh.position.copy(this.position);
 
         // Arrowhead/Hood shape
-        const createArcShape = (s, thickness) => {
+        const createArcShape = (r) => {
             const shape = new THREE.Shape();
-            const hx = s; // half width
-            const ty = s * 1.5; // top y (tip)
-            const by = -s * 0.4; // bottom y (tails)
+            const hx = r * 1.8; // half width (横幅を広げた)
+            const ty = r * 1.6; // top y (tip)
+            const by = r * 0.2; // bottom y (tails)
+            
+            // 線幅・厚み（thickness）を増やして「太く」した
+            const thickness = r * 0.4; 
+            const innerTy = r * 1.2; 
             
             shape.moveTo(0, ty);
-            // Outer curve to right tail
-            shape.quadraticCurveTo(hx, 0, hx, by);
+            // 右外側
+            shape.lineTo(hx, by);
+            // 右末端
             shape.lineTo(hx - thickness, by);
-            // Inner curve back up towards center
-            shape.quadraticCurveTo(hx - thickness, 0, 0, ty - thickness * 1.2);
-            // Inner curve to left tail
-            shape.quadraticCurveTo(-(hx - thickness), 0, -(hx - thickness), by);
+            // 内側の切り込み
+            shape.lineTo(0, innerTy);
+            // 左末端（内側）
+            shape.lineTo(-(hx - thickness), by);
+            // 左末端
             shape.lineTo(-hx, by);
-            // Back to top tip
-            shape.quadraticCurveTo(-hx, 0, 0, ty);
+            // 先端へ戻る
+            shape.lineTo(0, ty);
+            
             return shape;
         };
 
-        const hoodShape = createArcShape(this.radius * 1.5, this.radius * 0.4);
-        const hoodGeo = new THREE.ShapeGeometry(hoodShape);
+        const hoodShape = createArcShape(this.radius);
+        // Add high curveSegments (32) to fix potential asymmetric triangulation/tessellation artifacts
+        const hoodGeo = new THREE.ShapeGeometry(hoodShape, 32);
 
-        // Arrowhead material (white to stand out against colored sphere)
-        const hoodMat = new THREE.MeshBasicMaterial({ 
-            color: 0xffffff, 
+        // Calculate complementary color (shift Hue by 180 degrees)
+        const baseColor = new THREE.Color(color);
+        const hsl = {};
+        baseColor.getHSL(hsl);
+        const compColor = new THREE.Color().setHSL((hsl.h + 0.5) % 1.0, hsl.s, hsl.l);
+
+        // Arrowhead material (complementary color)
+        const hoodMat = new THREE.MeshBasicMaterial({
+            color: compColor,
             side: THREE.DoubleSide,
             transparent: true,
-            opacity: 0.8
+            opacity: 0.9
         });
 
         const arrowMesh = new THREE.Mesh(hoodGeo, hoodMat);
-        // Position slightly forward
-        arrowMesh.position.set(0, 0, this.radius * 0.2);
-        // Rotate to lie flat, pointing forward (+Z)
+        // Position at the center so the inner curve precisely wraps the sphere
+        arrowMesh.position.set(0, 0, 0);
+        // Rotate so +Y (the tip) points forward in the direction of movement.
+        // We flip it to Math.PI / 2 to correct the backwards pointing issue.
         arrowMesh.rotation.x = Math.PI / 2;
-        
+
         this.mesh.add(arrowMesh);
 
         this.scene.add(this.mesh);
@@ -381,7 +396,7 @@ export class BulletManager {
                 // Hit a wall
                 const currentEnd = currentStart.clone().add(direction.clone().multiplyScalar(hitDist));
                 paths.push({ start: currentStart, end: currentEnd });
-                
+
                 remainingLength -= hitDist;
                 currentStart = currentEnd.clone();
                 direction.reflect(normal);

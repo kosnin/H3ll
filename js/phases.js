@@ -26,7 +26,7 @@ export class PhaseManager {
         const difficulty = Math.min(gameTime / 60, 1); // 0 to 1 over 60 seconds
 
         // === Continuous bullet attacks ===
-        const bulletInterval = Math.max(0.4, 1.5 - difficulty * 1.0);
+        const bulletInterval = Math.max(0.3, 1.2 - difficulty * 0.9); // Spawn more frequently
         if (this.bulletTimer > bulletInterval) {
             this.bulletTimer = 0;
             this.spawnBulletAttack(playerPos, difficulty);
@@ -39,13 +39,6 @@ export class PhaseManager {
             this.spawnLaserAttack(playerPos, difficulty);
         }
 
-        // === Bullet rings ===
-        const ringInterval = Math.max(1.5, 3 - difficulty * 1.5);
-        if (this.ringTimer > ringInterval) {
-            this.ringTimer = 0;
-            this.spawnRingAttack(playerPos, difficulty);
-        }
-
         // === Gimmick every 5 seconds ===
         if (this.gimmickTimer >= this.gimmickInterval) {
             this.gimmickTimer = 0;
@@ -55,8 +48,8 @@ export class PhaseManager {
 
     spawnBulletAttack(playerPos, difficulty) {
         // Surround the player from all directions (omnidirectional spherical distribution)
-        const numSources = 8 + Math.floor(difficulty * 6); // 8-14 sources from all over
-        const countPerSource = Math.max(1, Math.floor((3 + difficulty * 4) / numSources * 3));
+        const numSources = 12 + Math.floor(difficulty * 8); // Increased from 8-14 to 12-20 sources to compensate for missing yellow bullets
+        const countPerSource = Math.max(1, Math.floor((4 + difficulty * 5) / numSources * 3)); // Slightly more bullets per source
         const speed = 10 + difficulty * 6;
         const spread = 0.4 - difficulty * 0.15;
 
