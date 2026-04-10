@@ -50,12 +50,19 @@ class WarningIndicator {
         this.scene.add(this.mesh);
     }
 
-    update(deltaTime) {
+    update(deltaTime, boundsY) {
         this.age += deltaTime;
 
         // Pulsing effect
         const pulse = Math.sin(this.age * 20) * 0.5 + 0.5;
-        this.mesh.scale.setScalar(0.8 + pulse * 0.4);
+        let baseScale = 0.8 + pulse * 0.4;
+        
+        // Height-based scaling
+        if (boundsY) {
+            const normalizedHeight = (this.mesh.position.y + boundsY) / (2 * boundsY);
+            baseScale *= (0.55 + normalizedHeight * 0.9);
+        }
+        this.mesh.scale.setScalar(baseScale);
 
         // Ring expands
         if (this.ring) {
@@ -161,7 +168,7 @@ class PoisonFog {
         }
     }
 
-    update(deltaTime) {
+    update(deltaTime, playerPos, boundsY) {
         this.age += deltaTime;
 
         // Fade in during first 1 second, fade out during last 1 second
@@ -174,20 +181,29 @@ class PoisonFog {
             opacity = 0.35;
         }
 
+        // 毒霧は鮮明度の影響を受けないように調整
+        let proximityMul = 1.0;
+
+        let heightScale = 1.0;
+        if (boundsY) {
+            const normalizedHeight = (this.center.y + boundsY) / (2 * boundsY);
+            heightScale = 0.55 + normalizedHeight * 0.9;
+        }
+
         for (const p of this.particles) {
-            // Drift movement
             const d = p.userData;
             p.position.x = d.basePos.x + Math.sin(this.age * 0.5 + d.phase) * d.drift.x * 3;
             p.position.y = d.basePos.y + Math.sin(this.age * 0.3 + d.phase) * d.drift.y * 3;
             p.position.z = d.basePos.z + Math.cos(this.age * 0.4 + d.phase) * d.drift.z * 3;
             p.rotation.z += deltaTime * 0.2;
-            p.material.opacity = opacity * (0.6 + Math.random() * 0.4);
+            p.material.opacity = opacity * (0.6 + Math.random() * 0.4) * proximityMul;
+            p.scale.setScalar(heightScale);
         }
 
-        // Pulse boundary rings
-        const ringOpacity = opacity * 0.6 * (0.7 + Math.sin(this.age * 3) * 0.3);
+        const ringOpacity = opacity * 0.6 * (0.7 + Math.sin(this.age * 3) * 0.3) * proximityMul;
         for (const ring of this.boundaryRings) {
             ring.material.opacity = ringOpacity;
+            ring.scale.setScalar(heightScale);
         }
 
         if (this.age >= this.duration) {
@@ -234,7 +250,7 @@ class GiantHand {
         this.baseZ = bounds.z * 0.7;
         this.hasLanded = false;
 
-        this.handScale = 1.8;
+        this.handScale = 2.7; // 1.8 * 1.5 = 2.7
 
         // Collision uses individual finger/palm boxes
         this.collisionBoxes = [];
@@ -307,7 +323,7 @@ class GiantHand {
         this.collisionBoxes.push({ center: new THREE.Vector3(2, 0, -10), halfX: 5, halfY: 1, halfZ: 4 });
 
         this.mesh = group;
-        this.mesh.rotation.y = -Math.PI * 0.75; // Left-front angle (diagonal toward -X, -Z)
+        this.mesh.rotation.y = -Math.PI * 0.75; // Pointing "Left-Back" (-X, -Z) from basePos
         this.mesh.position.set(this.baseX, 50, this.baseZ);
         this.mesh.scale.setScalar(this.handScale);
         this.scene.add(this.mesh);
@@ -317,7 +333,7 @@ class GiantHand {
         return new THREE.Vector3(this.baseX, this.bounds.y, this.baseZ);
     }
 
-    update(deltaTime) {
+    update(deltaTime, boundsY) {
         this.age += deltaTime;
 
         const landY = -this.bounds.y + 2;
@@ -338,6 +354,9 @@ class GiantHand {
                 this.mesh.position.y += (this.age - 1.2) * 40;
             }
         }
+
+        // GiantHandは高低差によるサイズ変化を行わない（一定サイズ）
+        this.mesh.scale.setScalar(this.handScale);
 
         if (this.age >= this.duration) {
             this.alive = false;
@@ -492,12 +511,19 @@ class RushingCar {
         this.scene.add(this.mesh);
     }
 
-    update(deltaTime) {
+    update(deltaTime, boundsY) {
         this.age += deltaTime;
 
         // Move car
         this.position.add(this.direction.clone().multiplyScalar(this.speed * deltaTime));
         this.mesh.position.copy(this.position);
+
+        // Height-based scaling
+        if (boundsY) {
+            const normalizedHeight = (this.position.y + boundsY) / (2 * boundsY);
+            const heightScale = 0.55 + normalizedHeight * 0.9;
+            this.mesh.scale.setScalar(2.3 * heightScale);
+        }
 
         // Check if car went off screen
         const b = this.bounds;
@@ -505,12 +531,10 @@ class RushingCar {
             Math.abs(this.position.z) > b.z + 20;
 
         if (outOfBounds && this.pass === 1) {
-            // Setup second pass from different direction
             this.pass = 2;
             this.setupPass(2);
             this.mesh.position.copy(this.position);
 
-            // Re-orient car
             if (this.direction.x !== 0) {
                 this.mesh.rotation.y = this.direction.x > 0 ? -Math.PI / 2 : Math.PI / 2;
             } else if (this.direction.z < 0) {
@@ -519,7 +543,6 @@ class RushingCar {
                 this.mesh.rotation.y = 0;
             }
 
-            // Spawn short warning for second pass
             if (this.warningCallback) {
                 const warnPos = this.position.clone();
                 warnPos.x = THREE.MathUtils.clamp(warnPos.x, -b.x, b.x);
@@ -580,6 +603,8 @@ class EnemyShooter {
             transparent: true,
             opacity: 0.9
         });
+        this.baseBodyColor = new THREE.Color(0xff6600); // 追記
+        this.bodyMat = bodyMat; // 保持しておく
         const body = new THREE.Mesh(bodyGeo, bodyMat);
         group.add(body);
 
@@ -597,6 +622,8 @@ class EnemyShooter {
             transparent: true,
             opacity: 0.5
         });
+        this.baseRingColor = new THREE.Color(0xff6600); // 追記
+        this.ringMat = ringMat; // 保持しておく
         this.ring = new THREE.Mesh(ringGeo, ringMat);
         group.add(this.ring);
 
@@ -610,14 +637,13 @@ class EnemyShooter {
         this.scene.add(this.mesh);
     }
 
-    update(deltaTime, playerPos) {
+    update(deltaTime, playerPos, boundsY) {
         this.age += deltaTime;
         this.shootTimer += deltaTime;
         this.laserTimer += deltaTime;
 
         // Rotate to face player
         if (playerPos) {
-            const dir = playerPos.clone().sub(this.position);
             this.mesh.lookAt(playerPos);
         }
 
@@ -625,25 +651,51 @@ class EnemyShooter {
         this.ring.rotation.x += deltaTime * 3;
         this.ring.rotation.y += deltaTime * 2;
 
-        // Fade in/out
+        // Base scaling (fade in/out)
+        let baseScale = 1.0;
         if (this.age < 0.5) {
-            this.mesh.scale.setScalar(this.age * 2);
+            baseScale = this.age * 2;
         } else if (this.age > this.duration - 0.5) {
-            this.mesh.scale.setScalar((this.duration - this.age) * 2);
+            baseScale = (this.duration - this.age) * 2;
+        }
+
+        // Height-based scaling
+        if (boundsY) {
+            const normalizedHeight = (this.position.y + boundsY) / (2 * boundsY);
+            baseScale *= (0.55 + normalizedHeight * 0.9);
+        }
+        this.mesh.scale.setScalar(baseScale);
+
+        // Proximity color (distance + height difference)
+        if (playerPos) {
+            const dist3D = this.position.distanceTo(playerPos);
+            const distY = Math.abs(this.position.y - playerPos.y);
+            const proximityOpacity = THREE.MathUtils.clamp(1.0 - dist3D * 0.02 - distY * 0.05, 0.1, 0.95);
+            // グループではなくマテリアルに対して適用する
+            if (this.bodyMat) {
+                this.bodyMat.opacity = proximityOpacity * 0.9;
+                // 明るくする
+                const colorFactor = (1.0 - proximityOpacity) * 0.3;
+                this.bodyMat.color.copy(this.baseBodyColor).lerp(new THREE.Color(0xffffff), colorFactor);
+            }
+            if (this.ringMat) {
+                this.ringMat.opacity = proximityOpacity * 0.5;
+                // 明るくする
+                const colorFactor = (1.0 - proximityOpacity) * 0.3;
+                this.ringMat.color.copy(this.baseRingColor).lerp(new THREE.Color(0xffffff), colorFactor);
+            }
         }
 
         // Shoot bullets at player
         if (this.shootTimer > 0.6 && this.age > 0.5 && playerPos) {
             this.shootTimer = 0;
-            // Enhanced attack: faster bullets + small spread
-            const speed = 20; // Increased from 14
+            const speed = 20;
             this.bulletManager.spawnAimedBurst(this.position, playerPos, 3, speed, 0.4);
         }
 
         // Shoot laser occasionally
         if (this.laserTimer > 2.5 && this.age > 1 && playerPos) {
             this.laserTimer = 0;
-            // Enhanced laser: aimed with prediction or sweep? For now just standard aimed
             const endPos = this.position.clone().add(
                 playerPos.clone().sub(this.position).normalize().multiplyScalar(60)
             );
@@ -819,8 +871,19 @@ class Mine {
         return dist < this.radius * 1.4 + playerRadius;
     }
 
-    update(deltaTime) {
+    update(deltaTime, boundsY) {
         this.age += deltaTime;
+
+        // Height-based scaling
+        if (boundsY) {
+            const normalizedHeight = (this.position.y + boundsY) / (2 * boundsY);
+            const heightScale = 0.55 + normalizedHeight * 0.9;
+            this.mesh.scale.setScalar(1.4 * heightScale);
+            
+            for (const line of this.previewLines) {
+                line.scale.set(heightScale, 1.0, heightScale);
+            }
+        }
 
         if (!this.triggered) {
             // Blinking warning light
@@ -935,7 +998,7 @@ class DividingWall {
         this.scene.add(this.mesh);
     }
 
-    update(deltaTime) {
+    update(deltaTime, boundsY) {
         this.age += deltaTime;
 
         // Fade in/out
@@ -1045,7 +1108,7 @@ class FruitTree {
         this.scene.add(this.mesh);
     }
 
-    update(deltaTime) {
+    update(deltaTime, boundsY) {
         this.age += deltaTime;
         this.fruitTimer += deltaTime;
 
@@ -1055,15 +1118,27 @@ class FruitTree {
             this.dropFruit();
         }
 
+        let treeHeightScale = 1.0;
+        if (boundsY) {
+            const normalizedHeight = (this.position.y + boundsY) / (2 * boundsY);
+            treeHeightScale = 0.55 + normalizedHeight * 0.9;
+        }
+
         // Update fruits
         for (let i = this.fruits.length - 1; i >= 0; i--) {
             const f = this.fruits[i];
-            f.velocity.y -= 20 * deltaTime; // gravity
+            f.velocity.y -= 20 * deltaTime;
             f.mesh.position.add(f.velocity.clone().multiplyScalar(deltaTime));
             f.mesh.rotation.x += deltaTime * 5;
             f.mesh.rotation.z += deltaTime * 3;
 
-            // Remove if below bounds
+            // Height-based scaling for fruits
+            if (boundsY) {
+                const fNormH = (f.mesh.position.y + boundsY) / (2 * boundsY);
+                const fHeightScale = 0.55 + fNormH * 0.9;
+                f.mesh.scale.setScalar(4.6 * fHeightScale);
+            }
+
             if (f.mesh.position.y < -this.bounds.y - 5) {
                 this.scene.remove(f.mesh);
                 this.fruits.splice(i, 1);
@@ -1071,10 +1146,11 @@ class FruitTree {
         }
 
         // Fade out tree at end
+        let baseScale = 2.3;
         if (this.age > this.duration - 0.5) {
-            const s = (this.duration - this.age) * 2;
-            this.mesh.scale.setScalar(Math.max(0, s));
+            baseScale = Math.max(0, (this.duration - this.age) * 2 * 2.3);
         }
+        this.mesh.scale.setScalar(baseScale * treeHeightScale);
 
         if (this.age >= this.duration) {
             this.alive = false;
@@ -1339,6 +1415,7 @@ class LargeHomingBullet {
         this.radius = 1.2; // 通常弾(0.3)の4倍相当だが、依頼通りさらに2倍にする
         this.speed = 20;
         this.gimmickName = 'Homing';
+        this.baseColor = new THREE.Color(0xaa00ff); // 追記
 
         // Spawn at a random edge
         const side = Math.floor(Math.random() * 4);
@@ -1369,15 +1446,13 @@ class LargeHomingBullet {
         this.scene.add(this.mesh);
     }
 
-    update(deltaTime, playerPos) {
+    update(deltaTime, playerPos, boundsY) {
         this.age += deltaTime;
 
-        // Ensure collision damage checks uses gimmick mechanisms
         this.hasCollision = true;
 
         if (playerPos) {
             const dir = playerPos.clone().sub(this.position).normalize();
-            // Steer towards player
             this.velocity.lerp(dir.multiplyScalar(this.speed), 4 * deltaTime);
         }
 
@@ -1387,9 +1462,25 @@ class LargeHomingBullet {
         this.mesh.rotation.x += deltaTime * 4;
         this.mesh.rotation.y += deltaTime * 5;
 
-        // Pulse scale slightly
-        const pulse = 1.0 + Math.sin(this.age * 12) * 0.1;
-        this.mesh.scale.setScalar(pulse);
+        // Pulse + Height-based scaling
+        let baseScale = 1.0 + Math.sin(this.age * 12) * 0.1;
+        if (boundsY) {
+            const normalizedHeight = (this.position.y + boundsY) / (2 * boundsY);
+            baseScale *= (0.55 + normalizedHeight * 0.9);
+        }
+        this.mesh.scale.setScalar(baseScale);
+
+        // Proximity color (distance + height difference)
+        if (playerPos) {
+            const dist3D = this.position.distanceTo(playerPos);
+            const distY = Math.abs(this.position.y - playerPos.y);
+            const proximityOpacity = THREE.MathUtils.clamp(1.0 - dist3D * 0.02 - distY * 0.05, 0.1, 0.95);
+            this.mesh.material.opacity = proximityOpacity;
+            
+            // 明るくする
+            const colorFactor = (1.0 - proximityOpacity) * 0.3;
+            this.mesh.material.color.copy(this.baseColor).lerp(new THREE.Color(0xffffff), colorFactor);
+        }
 
         if (this.age >= this.duration) {
             this.alive = false;
@@ -1617,10 +1708,10 @@ export class GimmickManager {
         this.spawnGimmick(type);
     }
 
-    update(deltaTime, playerPos, playerRadius) {
+    update(deltaTime, playerPos, playerRadius, cameraPos, boundsY) {
         // Update warnings
         for (let i = this.warnings.length - 1; i >= 0; i--) {
-            this.warnings[i].update(deltaTime);
+            this.warnings[i].update(deltaTime, boundsY);
             if (!this.warnings[i].alive) {
                 this.warnings[i].destroy();
                 this.warnings.splice(i, 1);
@@ -1630,10 +1721,14 @@ export class GimmickManager {
         // Update active gimmicks
         for (let i = this.activeGimmicks.length - 1; i >= 0; i--) {
             const g = this.activeGimmicks[i];
-            if (g.update.length > 1) {
-                g.update(deltaTime, playerPos);
+            
+            // Handle different update signatures
+            if (g instanceof EnemyShooter || g instanceof LargeHomingBullet) {
+                g.update(deltaTime, playerPos, boundsY);
+            } else if (g instanceof PoisonFog) {
+                g.update(deltaTime, playerPos, boundsY);
             } else {
-                g.update(deltaTime);
+                g.update(deltaTime, boundsY);
             }
 
             if (!g.alive) {

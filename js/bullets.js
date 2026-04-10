@@ -14,6 +14,7 @@ class Bullet {
         this.bounceCount = 0;
         this.maxBounces = 3;
 
+        this.baseColor = new THREE.Color(color);
         this.createMesh(color);
     }
 
@@ -74,6 +75,7 @@ class Bullet {
             transparent: true,
             opacity: 0.9
         });
+        this.hoodMat = hoodMat; // 保持しておく
 
         const arrowMesh = new THREE.Mesh(hoodGeo, hoodMat);
         // Position at the center so the inner curve precisely wraps the sphere
@@ -87,14 +89,13 @@ class Bullet {
         this.scene.add(this.mesh);
     }
 
-    update(deltaTime, bounds, bounceEnabled, zigzagEnabled) {
+    update(deltaTime, bounds, bounceEnabled, zigzagEnabled, playerPos, boundsY) {
         // Zigzag: add periodic lateral offset to velocity
         if (zigzagEnabled) {
             const time = Date.now() * 0.005;
             const speed = this.velocity.length();
-            const amplitude = speed * 3; // Shallower zigzag (was 8)
-            const freq = 0.8; // Slightly milder frequency
-            // Perpendicular offset based on velocity direction
+            const amplitude = speed * 3;
+            const freq = 0.8;
             const right = new THREE.Vector3(-this.velocity.z, 0, this.velocity.x).normalize();
             const zigzagOffset = right.multiplyScalar(Math.sin(time * freq + this.startPosition.x * 3) * amplitude * deltaTime);
             this.position.add(zigzagOffset);
@@ -103,7 +104,28 @@ class Bullet {
         this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
         this.mesh.position.copy(this.position);
 
+        // === Height-based Scaling ===
+        if (boundsY) {
+            const normalizedHeight = (this.position.y + boundsY) / (2 * boundsY);
+            const heightScale = 0.55 + normalizedHeight * 0.9;
+            this.mesh.scale.setScalar(heightScale);
+        }
 
+        // === Proximity Color (自機から遠い・高さが違うほど薄く) ===
+        if (playerPos) {
+            const dist3D = this.position.distanceTo(playerPos);
+            const distY = Math.abs(this.position.y - playerPos.y);
+            // 距離だけでなく高さの差も考慮して不透明度を調整
+            const proximityOpacity = THREE.MathUtils.clamp(1.0 - dist3D * 0.02 - distY * 0.05, 0.1, 0.95);
+            this.mesh.material.opacity = proximityOpacity;
+            
+            // 薄いもの程、色を明るく（白っぽく）する
+            const colorFactor = (1.0 - proximityOpacity) * 0.3;
+            this.mesh.material.color.copy(this.baseColor).lerp(new THREE.Color(0xffffff), colorFactor);
+            
+            // 矢印パーツも薄くする
+            if (this.hoodMat) this.hoodMat.opacity = proximityOpacity;
+        }
 
         // Orient the mesh to face the direction of travel
         if (this.velocity.lengthSq() > 0.01) {
@@ -135,7 +157,7 @@ class Bullet {
             }
         }
 
-        // Out-of-bounds check: remove bullets that have left the stage (with margin)
+        // Out-of-bounds check
         if (bounds && !bounceEnabled) {
             const margin = 15;
             if (Math.abs(this.position.x) > bounds.x + margin ||
@@ -168,7 +190,7 @@ class HomingBullet extends Bullet {
         this.age = 0;
     }
 
-    update(deltaTime, playerPosition) {
+    update(deltaTime, playerPosition, boundsY) {
         this.age += deltaTime;
 
         if (this.age > this.lifetime) {
@@ -182,8 +204,27 @@ class HomingBullet extends Bullet {
         this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
         this.mesh.position.copy(this.position);
 
-        const pulse = 1 + Math.sin(this.age * 10) * 0.2;
+        // Height-based scaling
+        let heightScale = 1.0;
+        if (boundsY) {
+            const normalizedHeight = (this.position.y + boundsY) / (2 * boundsY);
+            heightScale = 0.55 + normalizedHeight * 0.9;
+        }
+
+        const pulse = (1 + Math.sin(this.age * 10) * 0.2) * heightScale;
         this.mesh.scale.setScalar(pulse);
+
+        // Proximity color (distance + height difference)
+        if (playerPosition) {
+            const dist3D = this.position.distanceTo(playerPosition);
+            const distY = Math.abs(this.position.y - playerPosition.y);
+            const proximityOpacity = THREE.MathUtils.clamp(1.0 - dist3D * 0.02 - distY * 0.05, 0.1, 0.95);
+            this.mesh.material.opacity = proximityOpacity;
+            
+            // 明るくする
+            const colorFactor = (1.0 - proximityOpacity) * 0.3;
+            this.mesh.material.color.copy(this.baseColor).lerp(new THREE.Color(0xffffff), colorFactor);
+        }
     }
 }
 
@@ -256,6 +297,7 @@ class Laser {
         this.end = end.clone();
         this.radius = 0.8;
 
+        this.baseColor = new THREE.Color(0xffcc00);
         this.createMesh();
     }
 
@@ -294,10 +336,31 @@ class Laser {
         this.scene.add(this.mesh);
     }
 
-    update(deltaTime) {
+    update(deltaTime, playerPos, boundsY) {
         this.age += deltaTime;
 
-        this.mesh.material.opacity = 0.5 + Math.random() * 0.5;
+        // Height-based scaling for laser thickness
+        if (boundsY) {
+            const midpoint = this.start.clone().add(this.end).multiplyScalar(0.5);
+            const normalizedHeight = (midpoint.y + boundsY) / (2 * boundsY);
+            const heightScale = 0.55 + normalizedHeight * 0.9;
+            this.mesh.scale.set(heightScale, 1.0, heightScale);
+        }
+
+        // Proximity color for laser (distance + height difference)
+        if (playerPos) {
+            const midpoint = this.start.clone().add(this.end).multiplyScalar(0.5);
+            const dist3D = midpoint.distanceTo(playerPos);
+            const distY = Math.abs(midpoint.y - playerPos.y);
+            const proximityOpacity = THREE.MathUtils.clamp(1.0 - dist3D * 0.02 - distY * 0.05, 0.15, 0.9);
+            this.mesh.material.opacity = 0.2 + Math.random() * 0.2 + proximityOpacity * 0.5;
+            
+            // 明るくする
+            const colorFactor = (1.0 - proximityOpacity) * 0.3;
+            this.mesh.material.color.copy(this.baseColor).lerp(new THREE.Color(0xffffff), colorFactor);
+        } else {
+            this.mesh.material.opacity = 0.5 + Math.random() * 0.3;
+        }
 
         if (this.age > this.duration) {
             this.alive = false;
@@ -506,9 +569,9 @@ export class BulletManager {
         }
     }
 
-    update(deltaTime, playerPosition) {
+    update(deltaTime, playerPosition, cameraPos, boundsY) {
         for (let i = this.bullets.length - 1; i >= 0; i--) {
-            this.bullets[i].update(deltaTime, this.bounds, this.bounceEnabled, this.zigzagEnabled);
+            this.bullets[i].update(deltaTime, this.bounds, this.bounceEnabled, this.zigzagEnabled, playerPosition, boundsY);
             if (!this.bullets[i].alive) {
                 this.bullets[i].destroy();
                 this.bullets.splice(i, 1);
@@ -516,7 +579,7 @@ export class BulletManager {
         }
 
         for (let i = this.homingBullets.length - 1; i >= 0; i--) {
-            this.homingBullets[i].update(deltaTime, playerPosition);
+            this.homingBullets[i].update(deltaTime, playerPosition, boundsY);
             if (!this.homingBullets[i].alive) {
                 this.homingBullets[i].destroy();
                 this.homingBullets.splice(i, 1);
@@ -532,7 +595,7 @@ export class BulletManager {
         }
 
         for (let i = this.lasers.length - 1; i >= 0; i--) {
-            this.lasers[i].update(deltaTime);
+            this.lasers[i].update(deltaTime, playerPosition, boundsY);
             if (!this.lasers[i].alive) {
                 this.lasers[i].destroy();
                 this.lasers.splice(i, 1);

@@ -33,8 +33,6 @@ export class Player {
 
         this.mesh = new THREE.Mesh(geometry, material);
 
-
-
         // Eyes
         const eyeGeometry = new THREE.CircleGeometry(0.1, 6);
         const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
@@ -48,6 +46,19 @@ export class Player {
         this.mesh.add(this.rightEye);
 
         this.scene.add(this.mesh);
+
+        // === #1: Ground Shadow (地面マーカー) ===
+        const shadowGeo = new THREE.CircleGeometry(this.radius, 24);
+        const shadowMat = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.45,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+        this.groundShadow = new THREE.Mesh(shadowGeo, shadowMat);
+        this.groundShadow.rotation.x = -Math.PI / 2; // Lay flat on ground
+        this.scene.add(this.groundShadow);
     }
 
     updateTargetFromMouse() {
@@ -86,7 +97,7 @@ export class Player {
         this.verticalInput = value;
     }
 
-    update(deltaTime) {
+    update(deltaTime, cameraPos) {
         this.updateTargetFromMouse();
 
         // Smoothly move towards target position on XZ plane
@@ -124,8 +135,27 @@ export class Player {
         // Update mesh position
         this.mesh.position.copy(this.position);
 
-        // Wobble animation
-        this.mesh.rotation.z = Math.sin(Date.now() * 0.01) * 0.1;
+        // === Height-based Scaling (トップダウン用) ===
+        // 高い位置(Y+) = カメラに近い = 大きく表示
+        const normalizedHeight = (this.position.y + this.bounds.y) / (2 * this.bounds.y); // 0~1
+        const heightScale = 0.55 + normalizedHeight * 0.9; // 0.55 (底) ~ 1.45 (天井)
+        this.mesh.scale.setScalar(heightScale);
+
+        // Wobble animation (additive to perspective scale)
+        const wobble = Math.sin(Date.now() * 0.01) * 0.1;
+        this.mesh.rotation.z = wobble;
+
+        // === Update visual aids ===
+
+        // #1: Ground shadow follows XZ position, stays on the ground
+        if (this.groundShadow) {
+            this.groundShadow.position.set(this.position.x, -this.bounds.y + 0.05, this.position.z);
+            // Scale shadow based on height (higher = bigger but more transparent)
+            const heightAboveGround = this.position.y + this.bounds.y;
+            const shadowScale = 1 + heightAboveGround * 0.03;
+            this.groundShadow.scale.setScalar(shadowScale);
+            this.groundShadow.material.opacity = Math.max(0.08, 0.25 - heightAboveGround * 0.008);
+        }
     }
 
     reset() {

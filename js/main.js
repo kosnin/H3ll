@@ -15,12 +15,14 @@ class Game {
         this.gameTime = 0;
 
         // Play area bounds
-        this.bounds = new THREE.Vector3(22, 14, 22);
+        // デフォルト面(XZ)を最大かつ少し横長に(X=32, Z=20)
+        // 高さ(Y)は元の22の約2/3である15に設定
+        this.bounds = new THREE.Vector3(32, 15, 20);
 
-        // Camera settings (fixed angle, no manual control)
-        this.cameraDistance = 60;
+        // Camera settings - デフォルトは完全なトップダウン（真上から見下ろし）
+        this.cameraDistance = 58;
         this.cameraTheta = 0; // Camera horizontal angle
-        this.cameraPhi = 0.8; // Camera vertical angle (approx 45 degrees)
+        this.cameraPhi = 0.01; // 真上(0)だとジンバルロックが起きるので微小な値を設定
         this.cameraTarget = new THREE.Vector3(0, 0, 0);
 
         // Input state
@@ -43,14 +45,17 @@ class Game {
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x111111);
 
-        // Camera - fixed isometric-like angle
+        // === #4: Fog (depth fog for spatial awareness) ===
+        this.scene.fog = new THREE.Fog(0x111111, 40, 120);
+
+        // Camera - 視野角を標準に戻す (パース強調のため個別スケーリングを併用)
         this.camera = new THREE.PerspectiveCamera(
             75,
             window.innerWidth / window.innerHeight,
             0.1,
             1000
         );
-        this.camera.position.set(0, 30, 35);
+        this.camera.position.set(0, 58, 0.5);
         this.camera.lookAt(0, 0, 0);
 
         // Renderer
@@ -94,16 +99,47 @@ class Game {
     }
 
     createBackgroundGrid() {
-        // Ground grid
-        const gridHelper = new THREE.GridHelper(60, 30, 0x222222, 0x191919);
-        gridHelper.position.y = -this.bounds.y;
-        this.scene.add(gridHelper);
+        // 壁面用の矩形グリッド作成ヘルパー
+        const createWallGrid = (width, height, divisions, color) => {
+            const geometry = new THREE.BufferGeometry();
+            const vertices = [];
+            
+            // 垂直線
+            for (let i = 0; i <= divisions; i++) {
+                const x = (i / divisions - 0.5) * width;
+                vertices.push(x, -height / 2, 0, x, height / 2, 0);
+            }
+            // 水平線
+            const hDivisions = Math.round(divisions * (height / width));
+            for (let i = 0; i <= hDivisions; i++) {
+                const y = (i / hDivisions - 0.5) * height;
+                vertices.push(-width / 2, y, 0, width / 2, y, 0);
+            }
+            
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            return new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ 
+                color: color, 
+                transparent: true, 
+                opacity: 0.4 
+            }));
+        };
 
-        // Side grids for depth perception
-        const sideGrid = new THREE.GridHelper(40, 20, 0x1a1a1a, 0x151515);
-        sideGrid.rotation.x = Math.PI / 2;
-        sideGrid.position.z = -this.bounds.z;
-        this.scene.add(sideGrid);
+        // 地面 (XZ平面) - 幅44, 奥行き28 の矩形
+        const groundGrid = createWallGrid(this.bounds.x * 2, this.bounds.z * 2, 20, 0x444444);
+        groundGrid.rotation.x = -Math.PI / 2;
+        groundGrid.position.y = -this.bounds.y;
+        this.scene.add(groundGrid);
+
+        // 奥の壁 (XY平面) - 幅44, 高さ44
+        const backGrid = createWallGrid(this.bounds.x * 2, this.bounds.y * 2, 20, 0x333333);
+        backGrid.position.set(0, 0, -this.bounds.z);
+        this.scene.add(backGrid);
+
+        // 左の壁 (YZ平面) - 奥行き28, 高さ44
+        const leftGrid = createWallGrid(this.bounds.z * 2, this.bounds.y * 2, 20, 0x333333);
+        leftGrid.rotation.y = Math.PI / 2;
+        leftGrid.position.set(-this.bounds.x, 0, 0);
+        this.scene.add(leftGrid);
     }
 
     createAmbientParticles() {
@@ -194,9 +230,9 @@ class Game {
             case 'd': this.keys.d = true; break;
             case 'q':
                 // Reset Camera
-                this.cameraDistance = 60;
+                this.cameraDistance = 58;
                 this.cameraTheta = 0;
-                this.cameraPhi = 0.8;
+                this.cameraPhi = 0.01;
                 break;
             case 'pageup':
                 this.cameraDistance -= 5;
@@ -340,6 +376,8 @@ class Game {
         // Update camera (always, for zoom/rotate on title/death screens)
         this.updateCamera(deltaTime);
 
+        const cameraPos = this.camera.position;
+
         // Always update effects (for death animation)
         this.effectsManager.update(deltaTime);
         this.ui.update(deltaTime);
@@ -358,9 +396,9 @@ class Game {
         else if (this.mouseButtons.right && !this.mouseButtons.left) vInput = -1;
         this.player.setVerticalInput(vInput);
 
-        // Update player with camera angle for adaptive movement
+        // Update player with camera angle and position for adaptive movement and scaling
         this.player.cameraTheta = this.cameraTheta;
-        this.player.update(deltaTime);
+        this.player.update(deltaTime, this.camera.position);
 
         // Apply wall constraints from gimmicks
         const constrainedPos = this.gimmickManager.constrainPlayerPosition(
@@ -375,11 +413,11 @@ class Game {
         // Update phase manager (spawns attacks + gimmicks)
         this.phaseManager.update(deltaTime, this.gameTime, playerPos);
 
-        // Update bullets
-        this.bulletManager.update(deltaTime, playerPos);
+        // Update bullets: カメラ位置 + プレイヤー位置 + bounds.y (高さスケーリング + 近接色)
+        this.bulletManager.update(deltaTime, playerPos, this.camera.position, this.bounds.y);
 
-        // Update gimmicks
-        this.gimmickManager.update(deltaTime, playerPos, this.player.getRadius());
+        // Update gimmicks: カメラ位置 + プレイヤー位置 + bounds.y
+        this.gimmickManager.update(deltaTime, playerPos, this.player.getRadius(), this.camera.position, this.bounds.y);
 
         // Check collisions
         const collision = this.collisionSystem.checkPlayerCollisions(
@@ -402,8 +440,8 @@ class Game {
         if (this.keys.w) this.cameraPhi -= rotationSpeed * deltaTime;
         if (this.keys.s) this.cameraPhi += rotationSpeed * deltaTime;
 
-        // Clamp Phi to prevent flipping (approx 10 degrees to 80 degrees)
-        this.cameraPhi = THREE.MathUtils.clamp(this.cameraPhi, 0.2, 1.4);
+        // Clamp Phi to prevent flipping
+        this.cameraPhi = THREE.MathUtils.clamp(this.cameraPhi, 0.01, 1.4);
 
         const playerPos = this.player.getPosition();
 
