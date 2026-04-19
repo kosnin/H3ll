@@ -277,6 +277,10 @@ class Game {
             e.preventDefault();
         }
 
+        // Don't start/restart if ranking is open or clicking UI elements
+        if (this.ui.isRankingOpen()) return;
+        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+
         if (this.state === 'title') {
             this.startGame();
             return;
