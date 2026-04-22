@@ -183,8 +183,32 @@ body {
 }
 
 .register-btn {
-    font-size: 0.9rem;
-    padding: 6px 16px;
+    /* 潰れにくく可読性の高いフォントに変更 */
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 1.1rem;
+    padding: 12px 18px; /* 余白を削減 */
+    background: #ff003c;
+    color: #fff;
+    border: none;
+    box-shadow: 0 0 15px rgba(255, 0, 60, 0.4);
+    font-weight: 700;
+    transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+    white-space: nowrap;
+    letter-spacing: 0.02em; /* 日本語・英数混在向けに調整 */
+    flex-shrink: 0;
+}
+
+.register-btn:hover {
+    background: #ff2b5f;
+    transform: scale(1.05);
+    box-shadow: 0 0 25px rgba(255, 0, 60, 0.6);
+}
+
+.register-btn:disabled {
+    background: #444;
+    box-shadow: none;
+    transform: none;
+    cursor: default;
 }
 
 .register-form {
@@ -195,15 +219,15 @@ body {
 }
 
 .username-input {
-    font-family: 'Russo One', 'Noto Sans JP', sans-serif;
+    font-family: 'Noto Sans JP', sans-serif;
     background: transparent;
     border: 1px solid #555;
     color: #fff;
-    padding: 8px 12px;
-    font-size: 1rem;
-    width: 200px;
+    padding: 10px 16px;
+    font-size: 1.1rem;
+    width: 240px;
     outline: none;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.02em;
 }
 
 .username-input:focus {
@@ -211,8 +235,12 @@ body {
 }
 
 .submit-btn {
-    font-size: 0.9rem;
-    padding: 6px 16px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 1rem;
+    padding: 10px 20px;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+    font-weight: 700;
 }
 
 .restart-instruction {
@@ -284,5 +312,60 @@ body {
 }
 
 .ranking-close-btn {
-    margin-top: 30px;
+    margin-top: 0;
+}
+
+.ranking-container {
+    display: flex;
+    align-items: stretch;
+    gap: 40px;
+    max-width: 90vw;
+}
+
+.player-ranking-column {
+    width: 220px;
+    text-align: left;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+}
+
+.column-label {
+    font-size: 0.8rem;
+    color: #666;
+    margin-bottom: 20px;
+    letter-spacing: 0.2em;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+}
+
+.player-status-entry {
+    margin-bottom: 15px;
+}
+
+.player-status-entry .label {
+    font-size: 0.7rem;
+    color: #888;
+    display: block;
+}
+
+.player-status-entry .value {
+    font-size: 1.2rem;
+    color: #fff;
+    display: block;
+    word-break: break-all;
+}
+
+.player-status-entry.your-rank .value {
+    color: #ff003c;
+    font-size: 2.2rem;
+    font-weight: 700;
+}
+
+.close-btn-column {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }

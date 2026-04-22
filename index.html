@@ -32,7 +32,8 @@
             <h1 id="death-title" class="death-title">YOU DIED</h1>
             <div class="score-row">
                 <p id="survival-time" class="survival-time"></p>
-                <button id="register-btn" class="ui-btn register-btn">Register</button>
+                <button id="death-ranking-btn" class="ui-btn hidden">Ranking</button>
+                <button id="register-btn" class="ui-btn register-btn">Register for the Ranking</button>
             </div>
             <div id="register-form" class="register-form hidden">
                 <input id="username-input" type="text" placeholder="User name" maxlength="16" class="username-input" />
@@ -44,8 +45,16 @@
         <!-- Ranking Screen -->
         <div id="ranking-screen" class="screen hidden">
             <h2 class="ranking-title">RANKING</h2>
-            <div id="ranking-list" class="ranking-list"></div>
-            <button id="ranking-close-btn" class="ui-btn ranking-close-btn">Close</button>
+            <div class="ranking-container">
+                <div id="player-ranking-info" class="player-ranking-column">
+                    <div class="column-label">YOUR STATUS</div>
+                    <div id="player-status-content"></div>
+                </div>
+                <div id="ranking-list" class="ranking-list"></div>
+                <div class="close-btn-column">
+                    <button id="ranking-close-btn" class="ui-btn ranking-close-btn">Close</button>
+                </div>
+            </div>
         </div>
     </div>
 

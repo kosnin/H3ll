@@ -15,15 +15,19 @@ export class UIManager {
         this.rankingList = document.getElementById('ranking-list');
         this.rankingBtn = document.getElementById('ranking-btn');
         this.rankingCloseBtn = document.getElementById('ranking-close-btn');
+        this.playerStatusContent = document.getElementById('player-status-content');
 
         // Register elements
         this.registerBtn = document.getElementById('register-btn');
+        this.deathRankingBtn = document.getElementById('death-ranking-btn');
         this.registerForm = document.getElementById('register-form');
         this.usernameInput = document.getElementById('username-input');
         this.submitRegisterBtn = document.getElementById('submit-register-btn');
 
         this.currentScore = 0;
         this.registered = false;
+        this.lastRegisteredName = "";
+        this.lastRegisteredScore = 0;
 
         this.initRankingEvents();
     }
@@ -31,6 +35,12 @@ export class UIManager {
     initRankingEvents() {
         // Title screen Ranking button
         this.rankingBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.showRanking();
+        });
+
+        // Death screen Ranking button
+        this.deathRankingBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             this.showRanking();
         });
@@ -79,9 +89,13 @@ export class UIManager {
 
         if (success) {
             this.registered = true;
+            this.lastRegisteredName = name;
+            this.lastRegisteredScore = this.currentScore;
+            
             this.registerBtn.textContent = 'Registered!';
             this.registerBtn.disabled = true;
             this.registerForm.classList.add('hidden');
+            this.deathRankingBtn.classList.remove('hidden'); // Show ranking button
             this.usernameInput.value = '';
         } else {
             this.submitRegisterBtn.textContent = 'Error';
@@ -119,9 +133,10 @@ export class UIManager {
         this.survivalTime.textContent = `Score: ${time.toFixed(2)}`;
         this.currentScore = parseFloat(time.toFixed(2));
         this.registered = false;
-        this.registerBtn.textContent = 'Register';
+        this.registerBtn.textContent = 'Register for the Ranking';
         this.registerBtn.disabled = false;
         this.registerForm.classList.add('hidden');
+        this.deathRankingBtn.classList.add('hidden'); // Hide until registered
         this.submitRegisterBtn.textContent = 'Register';
         this.submitRegisterBtn.disabled = false;
     }
@@ -133,6 +148,7 @@ export class UIManager {
     async showRanking() {
         // Show loading state
         this.rankingList.innerHTML = '<div class="ranking-empty">Loading...</div>';
+        this.playerStatusContent.innerHTML = '<div class="ranking-empty">Loading...</div>';
         this.rankingScreen.classList.remove('hidden');
 
         // Fetch from Firestore
@@ -154,6 +170,29 @@ export class UIManager {
                 this.rankingList.appendChild(row);
             });
         }
+
+        // Update player status on the left
+        let rankStr = "TOP 20+";
+        if (this.registered) {
+            // Try to find in the fetched top 20
+            const index = ranking.findIndex(e => e.name === this.lastRegisteredName && Math.abs(e.score - this.lastRegisteredScore) < 0.001);
+            if (index !== -1) rankStr = (index + 1).toString();
+        }
+
+        this.playerStatusContent.innerHTML = `
+            <div class="player-status-entry your-rank">
+                <span class="label">RANK</span>
+                <span class="value">${rankStr}</span>
+            </div>
+            <div class="player-status-entry">
+                <span class="label">NAME</span>
+                <span class="value">${this.escapeHtml(this.lastRegisteredName || "---")}</span>
+            </div>
+            <div class="player-status-entry">
+                <span class="label">SCORE</span>
+                <span class="value">${this.lastRegisteredScore ? this.lastRegisteredScore.toFixed(2) : "---"}</span>
+            </div>
+        `;
     }
 
     hideRanking() {
