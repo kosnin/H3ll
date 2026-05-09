@@ -7,6 +7,7 @@ import { CollisionSystem } from './collision.js';
 import { EffectsManager } from './effects.js';
 import { PhaseManager } from './phases.js';
 import { UIManager } from './ui.js';
+import { playButtonSound, playDeathSound } from './audio.js';
 
 class Game {
     constructor() {
@@ -328,6 +329,7 @@ class Game {
     startGame() {
         this.state = 'playing';
         this.gameTime = 0;
+        playButtonSound();
 
         this.ui.showGame();
         this.player.reset();
@@ -352,6 +354,7 @@ class Game {
 
         // Death explosion effect
         this.effectsManager.spawnDeathEffect(this.player.getPosition());
+        playDeathSound();
 
         // Hide player
         this.player.mesh.visible = false;

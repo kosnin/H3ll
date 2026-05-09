@@ -267,8 +267,8 @@ body {
 
 .ranking-list {
     width: 400px;
-    max-height: 60vh;
-    overflow-y: auto;
+    max-height: 85vh; /* 20件がスクロールなしで見られるように高さを拡大 */
+    overflow-y: visible;
 }
 
 .ranking-entry {

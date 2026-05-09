@@ -1,6 +1,6 @@
 // Ranking module - Firebase Firestore integration for online leaderboard
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, getCountFromServer, where } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 
 // ========================================
@@ -69,5 +69,22 @@ export async function getRanking() {
     } catch (e) {
         console.error('Failed to get ranking:', e);
         return [];
+    }
+}
+
+// 特定のスコアの正確な順位を取得 (自分よりスコアが高いレコード数 + 1)
+export async function getExactRank(score) {
+    init();
+    if (!db) return -1;
+    try {
+        const q = query(
+            collection(db, 'ranking'),
+            where('score', '>', score)
+        );
+        const snapshot = await getCountFromServer(q);
+        return snapshot.data().count + 1;
+    } catch (e) {
+        console.error('Failed to get exact rank:', e);
+        return -1;
     }
 }

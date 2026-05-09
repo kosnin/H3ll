@@ -1,5 +1,6 @@
 // UI module - handles all UI interactions + online ranking
-import { addScore, getRanking } from './ranking.js';
+import { addScore, getRanking, getExactRank } from './ranking.js';
+import { playButtonSound } from './audio.js';
 
 export class UIManager {
     constructor() {
@@ -36,6 +37,7 @@ export class UIManager {
         // Title screen Ranking button
         this.rankingBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            playButtonSound();
             this.showRanking();
         });
 
@@ -48,12 +50,14 @@ export class UIManager {
         // Close ranking
         this.rankingCloseBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            playButtonSound();
             this.hideRanking();
         });
 
         // Show register form
         this.registerBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            playButtonSound();
             this.registerForm.classList.remove('hidden');
             this.usernameInput.focus();
         });
@@ -172,11 +176,17 @@ export class UIManager {
         }
 
         // Update player status on the left
-        let rankStr = "TOP 20+";
+        let rankStr = "---";
         if (this.registered) {
             // Try to find in the fetched top 20
             const index = ranking.findIndex(e => e.name === this.lastRegisteredName && Math.abs(e.score - this.lastRegisteredScore) < 0.001);
-            if (index !== -1) rankStr = (index + 1).toString();
+            if (index !== -1) {
+                rankStr = (index + 1).toString();
+            } else {
+                // Fetch exact rank if not in top 20
+                const exactRank = await getExactRank(this.lastRegisteredScore);
+                rankStr = exactRank !== -1 ? exactRank.toString() : "TOP 20+";
+            }
         }
 
         this.playerStatusContent.innerHTML = `

@@ -1,5 +1,6 @@
 // Gimmicks module - all 7 gimmick types + warning system
 import * as THREE from 'three';
+import { playGimmickSound } from './audio.js';
 
 // ============================================================
 // Warning Indicator - 感嘆符(❗) displayed before gimmick arrives
@@ -1527,6 +1528,7 @@ export class GimmickManager {
         let gimmick;
         let warningPos;
         let warningDuration = 0.8;
+        playGimmickSound();
 
         switch (type) {
             case 'poison_fog':

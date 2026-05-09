@@ -1,5 +1,6 @@
 // Bullets module - handles all projectile types and patterns
 import * as THREE from 'three';
+import { playLaserSound } from './audio.js';
 
 // Base Bullet class
 class Bullet {
@@ -500,6 +501,7 @@ export class BulletManager {
                 () => {
                     const laser = new Laser(this.scene, path.start, path.end, duration);
                     this.lasers.push(laser);
+                    playLaserSound();
                 }
             );
             this.laserWarnings.push(warning);
@@ -517,6 +519,7 @@ export class BulletManager {
             this.lasers.push(laser);
             lasers.push(laser);
         }
+        if (lasers.length > 0) playLaserSound();
         return lasers;
     }
 
