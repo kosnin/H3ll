@@ -21,7 +21,7 @@ class Game {
         this.bounds = new THREE.Vector3(32, 15, 20);
 
         // Camera settings - デフォルトは完全なトップダウン（真上から見下ろし）
-        this.cameraDistance = 58;
+        this.cameraDistance = 33;
         this.cameraTheta = 0; // Camera horizontal angle
         this.cameraPhi = 0.01; // 真上(0)だとジンバルロックが起きるので微小な値を設定
         this.cameraTarget = new THREE.Vector3(0, 0, 0);
@@ -56,7 +56,7 @@ class Game {
             0.1,
             1000
         );
-        this.camera.position.set(0, 58, 0.5);
+        this.camera.position.set(0, 33, 0.5);
         this.camera.lookAt(0, 0, 0);
 
         // Renderer
@@ -231,7 +231,7 @@ class Game {
             case 'd': this.keys.d = true; break;
             case 'q':
                 // Reset Camera
-                this.cameraDistance = 58;
+                this.cameraDistance = 33;
                 this.cameraTheta = 0;
                 this.cameraPhi = 0.01;
                 break;

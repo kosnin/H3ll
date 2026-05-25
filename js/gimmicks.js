@@ -413,8 +413,8 @@ class RushingCar {
         this.bounds = bounds;
         this.alive = true;
         this.age = 0;
-        this.speed = 80;
-        this.hitRadius = 3;
+        this.speed = 120;
+        this.hitRadius = 3.8;
         this.warningCallback = warningCallback;
         this.gimmickName = 'Car';
 
@@ -454,24 +454,24 @@ class RushingCar {
         const group = new THREE.Group();
 
         // Car body
-        const bodyGeo = new THREE.BoxGeometry(3, 2, 6);
+        const bodyGeo = new THREE.BoxGeometry(3.8, 2.5, 7.6);
         const bodyMat = new THREE.MeshBasicMaterial({ color: 0xff4444 });
         const body = new THREE.Mesh(bodyGeo, bodyMat);
         group.add(body);
 
         // Roof
-        const roofGeo = new THREE.BoxGeometry(2.5, 1.2, 3);
+        const roofGeo = new THREE.BoxGeometry(3.15, 1.5, 3.8);
         const roofMat = new THREE.MeshBasicMaterial({ color: 0xcc3333 });
         const roof = new THREE.Mesh(roofGeo, roofMat);
-        roof.position.y = 1.5;
-        roof.position.z = -0.5;
+        roof.position.y = 1.9;
+        roof.position.z = -0.6;
         group.add(roof);
 
         // Wheels
-        const wheelGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.4, 8);
+        const wheelGeo = new THREE.CylinderGeometry(0.75, 0.75, 0.5, 8);
         const wheelMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
 
-        [[-1.5, -0.8, 2], [1.5, -0.8, 2], [-1.5, -0.8, -2], [1.5, -0.8, -2]].forEach(([x, y, z]) => {
+        [[-1.9, -1, 2.5], [1.9, -1, 2.5], [-1.9, -1, -2.5], [1.9, -1, -2.5]].forEach(([x, y, z]) => {
             const wheel = new THREE.Mesh(wheelGeo, wheelMat);
             wheel.position.set(x, y, z);
             wheel.rotation.z = Math.PI / 2;
@@ -479,13 +479,13 @@ class RushingCar {
         });
 
         // Headlights
-        const lightGeo = new THREE.SphereGeometry(0.3, 6, 6);
+        const lightGeo = new THREE.SphereGeometry(0.4, 6, 6);
         const lightMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
         const lightL = new THREE.Mesh(lightGeo, lightMat);
-        lightL.position.set(-1, 0, 3.1);
+        lightL.position.set(-1.25, 0, 3.9);
         group.add(lightL);
         const lightR = new THREE.Mesh(lightGeo, lightMat);
-        lightR.position.set(1, 0, 3.1);
+        lightR.position.set(1.25, 0, 3.9);
         group.add(lightR);
 
         // Outline
