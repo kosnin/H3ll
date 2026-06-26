@@ -1,5 +1,6 @@
 // Player module - handles player movement and rendering
 import * as THREE from 'three';
+import settings from './settings.js';
 
 export class Player {
     constructor(scene, bounds) {
@@ -27,7 +28,7 @@ export class Player {
         const geometry = new THREE.SphereGeometry(this.radius, 8, 6);
 
         const material = new THREE.MeshBasicMaterial({
-            color: 0xffffff,
+            color: settings.getHex('playerColor'),
             wireframe: false
         });
 
@@ -35,7 +36,7 @@ export class Player {
 
         // Eyes
         const eyeGeometry = new THREE.CircleGeometry(0.1, 6);
-        const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const eyeMaterial = new THREE.MeshBasicMaterial({ color: settings.getHex('playerEyeColor') });
 
         this.leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
         this.leftEye.position.set(-0.15, 0.15, this.radius * 0.95);
@@ -50,7 +51,7 @@ export class Player {
         // === #1: Ground Shadow (地面マーカー) ===
         const shadowGeo = new THREE.CircleGeometry(this.radius, 24);
         const shadowMat = new THREE.MeshBasicMaterial({
-            color: 0xffffff,
+            color: settings.getHex('playerColor'),
             transparent: true,
             opacity: 0.45,
             side: THREE.DoubleSide,
@@ -61,19 +62,20 @@ export class Player {
         this.scene.add(this.groundShadow);
     }
 
-    updateTargetFromMouse() {
-        const sensitivity = 2.5;
+    updateTargetFromMouse(camera) {
+        if (!camera) return;
 
-        // Raw input position relative to screen center
-        let inputX = this.mousePos.x * this.bounds.x * sensitivity;
-        let inputZ = this.mousePos.y * this.bounds.z * sensitivity;
+        // Use Raycaster to project mouse screen coordinate to the XZ plane at player's height Y
+        const raycaster = new THREE.Raycaster();
+        const mouseCoords = new THREE.Vector2(this.mousePos.x, this.mousePos.y);
+        raycaster.setFromCamera(mouseCoords, camera);
 
-        // Rotate input based on camera angle to align controls with view
-        const sin = Math.sin(this.cameraTheta);
-        const cos = Math.cos(this.cameraTheta);
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -this.position.y);
+        const targetPoint = new THREE.Vector3();
 
-        this.targetPosition.x = inputX * cos - inputZ * sin;
-        this.targetPosition.z = inputX * sin + inputZ * cos;
+        if (raycaster.ray.intersectPlane(plane, targetPoint)) {
+            this.targetPosition.copy(targetPoint);
+        }
 
         // Clamp to bounds
         this.targetPosition.x = THREE.MathUtils.clamp(
@@ -97,20 +99,12 @@ export class Player {
         this.verticalInput = value;
     }
 
-    update(deltaTime, cameraPos) {
-        this.updateTargetFromMouse();
+    update(deltaTime, camera) {
+        this.updateTargetFromMouse(camera);
 
-        // Smoothly move towards target position on XZ plane
-        this.position.x = THREE.MathUtils.lerp(
-            this.position.x,
-            this.targetPosition.x,
-            deltaTime * 8
-        );
-        this.position.z = THREE.MathUtils.lerp(
-            this.position.z,
-            this.targetPosition.z,
-            deltaTime * 8
-        );
+        // Completely synchronize position with target position (no lerp delay)
+        this.position.x = this.targetPosition.x;
+        this.position.z = this.targetPosition.z;
 
         // Vertical movement from clicks
         this.position.y += this.verticalInput * this.verticalSpeed * deltaTime;

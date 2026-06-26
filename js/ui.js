@@ -1,9 +1,11 @@
 // UI module - handles all UI interactions + online ranking
 import { addScore, getRanking, getExactRank } from './ranking.js';
 import { playButtonSound } from './audio.js';
+import settings, { SETTINGS_GROUPS } from './settings.js';
 
 export class UIManager {
     constructor() {
+        this.container = document.getElementById('game-container');
         this.titleScreen = document.getElementById('title-screen');
         this.deathScreen = document.getElementById('death-screen');
         this.hud = document.getElementById('hud');
@@ -30,7 +32,19 @@ export class UIManager {
         this.lastRegisteredName = "";
         this.lastRegisteredScore = 0;
 
+        // Settings elements
+        this.titleSettingsBtn = document.getElementById('title-settings-btn');
+        this.deathSettingsBtn = document.getElementById('death-settings-btn');
+        this.settingsScreen = document.getElementById('settings-screen');
+        this.settingsContent = document.getElementById('settings-content');
+        this.settingsResetBtn = document.getElementById('settings-reset-btn');
+        this.settingsSaveBtn = document.getElementById('settings-save-btn');
+
         this.initRankingEvents();
+        this.initSettingsEvents();
+
+        // Apply initial CSS variables
+        settings.applyCSSVariables();
     }
 
     initRankingEvents() {
@@ -81,6 +95,37 @@ export class UIManager {
         this.usernameInput.addEventListener('pointerdown', (e) => e.stopPropagation());
     }
 
+    initSettingsEvents() {
+        const openSettings = (e) => {
+            e.stopPropagation();
+            playButtonSound();
+            this.showSettings();
+        };
+
+        if (this.titleSettingsBtn) this.titleSettingsBtn.addEventListener('click', openSettings);
+        if (this.deathSettingsBtn) this.deathSettingsBtn.addEventListener('click', openSettings);
+
+        if (this.settingsSaveBtn) {
+            this.settingsSaveBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                playButtonSound();
+                settings.save();
+                settings.applyCSSVariables();
+                this.hideSettings();
+                alert('Refresh the page to apply');
+            });
+        }
+
+        if (this.settingsResetBtn) {
+            this.settingsResetBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                playButtonSound();
+                settings.reset();
+                this.populateSettings(); // Refresh UI
+            });
+        }
+    }
+
     async submitScore() {
         const name = this.usernameInput.value.trim();
         if (!name) return;
@@ -117,6 +162,8 @@ export class UIManager {
         this.deathScreen.classList.add('hidden');
         this.hud.classList.add('hidden');
         this.rankingScreen.classList.add('hidden');
+        if (this.settingsScreen) this.settingsScreen.classList.add('hidden');
+        this.container.classList.remove('playing');
     }
 
     hideTitle() {
@@ -128,11 +175,14 @@ export class UIManager {
         this.deathScreen.classList.add('hidden');
         this.hud.classList.remove('hidden');
         this.rankingScreen.classList.add('hidden');
+        if (this.settingsScreen) this.settingsScreen.classList.add('hidden');
+        this.container.classList.add('playing');
     }
 
     showDeath(time, killerName = '???') {
         this.deathScreen.classList.remove('hidden');
         this.hud.classList.add('hidden');
+        this.container.classList.remove('playing');
         this.deathTitle.textContent = `${killerName} killed you`;
         this.survivalTime.textContent = `Score: ${time.toFixed(2)}`;
         this.currentScore = parseFloat(time.toFixed(2));
@@ -211,6 +261,98 @@ export class UIManager {
 
     isRankingOpen() {
         return !this.rankingScreen.classList.contains('hidden');
+    }
+
+    showSettings() {
+        this.populateSettings();
+        this.settingsScreen.classList.remove('hidden');
+    }
+
+    hideSettings() {
+        this.settingsScreen.classList.add('hidden');
+    }
+
+    isSettingsOpen() {
+        return this.settingsScreen && !this.settingsScreen.classList.contains('hidden');
+    }
+
+    populateSettings() {
+        if (!this.settingsContent) return;
+        this.settingsContent.innerHTML = '';
+
+        SETTINGS_GROUPS.forEach(group => {
+            const groupEl = document.createElement('div');
+            groupEl.className = 'settings-group';
+
+            const titleEl = document.createElement('div');
+            titleEl.className = 'settings-group-title';
+            titleEl.textContent = group.label;
+            groupEl.appendChild(titleEl);
+
+            group.items.forEach(item => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'setting-item';
+
+                const labelEl = document.createElement('label');
+                labelEl.textContent = item.label;
+
+                const containerEl = document.createElement('div');
+                containerEl.className = 'color-input-container';
+
+                const inputEl = document.createElement('input');
+                inputEl.type = 'text';
+                inputEl.maxLength = 7;
+                inputEl.value = settings.get(item.key);
+
+                const previewEl = document.createElement('span');
+                previewEl.className = 'color-preview';
+                previewEl.style.backgroundColor = settings.get(item.key);
+
+                const isValidHex = (hex) => /^#[0-9a-fA-F]{6}$/.test(hex);
+
+                // Real-time input handling
+                inputEl.addEventListener('input', (e) => {
+                    let val = e.target.value.trim();
+                    // Auto-prepend # if 6 characters are input without it
+                    if (val.length === 6 && !val.startsWith('#') && /^[0-9a-fA-F]{6}$/.test(val)) {
+                        val = '#' + val;
+                        inputEl.value = val;
+                    }
+
+                    if (isValidHex(val)) {
+                        settings.set(item.key, val);
+                        previewEl.style.backgroundColor = val;
+                        inputEl.style.borderColor = '';
+                    } else {
+                        inputEl.style.borderColor = 'var(--text-glow-color)';
+                    }
+                });
+
+                // Revert on blur if invalid
+                inputEl.addEventListener('blur', (e) => {
+                    const val = e.target.value.trim();
+                    if (!isValidHex(val)) {
+                        const savedVal = settings.get(item.key);
+                        inputEl.value = savedVal;
+                        previewEl.style.backgroundColor = savedVal;
+                        inputEl.style.borderColor = '';
+                    }
+                });
+
+                // Prevent pointer events from triggering title-start or canvas clicks
+                inputEl.addEventListener('click', (e) => e.stopPropagation());
+                inputEl.addEventListener('pointerdown', (e) => e.stopPropagation());
+
+                containerEl.appendChild(inputEl);
+                containerEl.appendChild(previewEl);
+
+                itemEl.appendChild(labelEl);
+                itemEl.appendChild(containerEl);
+                groupEl.appendChild(itemEl);
+            });
+
+            this.settingsContent.appendChild(groupEl);
+        });
     }
 
     escapeHtml(str) {

@@ -17,6 +17,7 @@
 
         <!-- Title Screen -->
         <div id="title-screen" class="screen">
+            <button id="title-settings-btn" class="ui-btn settings-btn">Settings</button>
             <h1 class="title">H3ll</h1>
             <p class="instruction">CLICK TO START</p>
             <button id="ranking-btn" class="ui-btn ranking-btn">Ranking</button>
@@ -29,6 +30,7 @@
 
         <!-- Death Screen -->
         <div id="death-screen" class="screen hidden">
+            <button id="death-settings-btn" class="ui-btn settings-btn">Settings</button>
             <h1 id="death-title" class="death-title">YOU DIED</h1>
             <div class="score-row">
                 <p id="survival-time" class="survival-time"></p>
@@ -53,6 +55,18 @@
                 <div id="ranking-list" class="ranking-list"></div>
                 <div class="close-btn-column">
                     <button id="ranking-close-btn" class="ui-btn ranking-close-btn">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Screen -->
+        <div id="settings-screen" class="screen hidden">
+            <h2 class="settings-title">SETTINGS</h2>
+            <div class="settings-container">
+                <div id="settings-content" class="settings-content"></div>
+                <div class="settings-actions">
+                    <button id="settings-reset-btn" class="ui-btn settings-reset-btn">Reset to Default</button>
+                    <button id="settings-save-btn" class="ui-btn settings-save-btn">Save & Close</button>
                 </div>
             </div>
         </div>

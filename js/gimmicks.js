@@ -1,5 +1,6 @@
-// Gimmicks module - all 7 gimmick types + warning system
+// Gimmicks module - handles all stage hazards and enemy objects
 import * as THREE from 'three';
+import settings from './settings.js';
 import { playGimmickSound } from './audio.js';
 
 // ============================================================
@@ -21,7 +22,7 @@ class WarningIndicator {
         // Exclamation mark body (tall box)
         const bodyGeo = new THREE.BoxGeometry(0.6, 2.5, 0.6);
         const mat = new THREE.MeshBasicMaterial({
-            color: 0xff0000,
+            color: settings.getHex('speedUpColor'),
             transparent: true,
             opacity: 0.9
         });
@@ -36,9 +37,9 @@ class WarningIndicator {
         group.add(dot);
 
         // Glow ring
-        const ringGeo = new THREE.RingGeometry(1.8, 2.2, 16);
+        const ringGeo = new THREE.RingGeometry(1.2, 1.5, 32);
         const ringMat = new THREE.MeshBasicMaterial({
-            color: 0xff0000,
+            color: settings.getHex('warningColor'),
             transparent: true,
             opacity: 0.4,
             side: THREE.DoubleSide
@@ -107,7 +108,7 @@ class PoisonFog {
         // Create fog particle cloud - danger zone in center
         const fogCount = 40; // Reduced per instance
         const mat = new THREE.MeshBasicMaterial({
-            color: 0x33ff33,
+            color: settings.getHex('poisonFogColor'),
             transparent: true,
             opacity: 0.0,
             side: THREE.DoubleSide
@@ -151,7 +152,7 @@ class PoisonFog {
         for (let i = 0; i < 3; i++) {
             const ringGeo = new THREE.RingGeometry(this.radius - 0.3, this.radius, 32);
             const ringMat = new THREE.MeshBasicMaterial({
-                color: 0x44ff44,
+                color: settings.getHex('poisonFogColor'),
                 transparent: true,
                 opacity: 0.0,
                 side: THREE.DoubleSide,
@@ -263,7 +264,7 @@ class GiantHand {
         const group = new THREE.Group();
 
         const material = new THREE.MeshBasicMaterial({
-            color: 0xff6644,
+            color: settings.getHex('giantHandColor'),
             transparent: true,
             opacity: 0.95
         });
@@ -455,13 +456,13 @@ class RushingCar {
 
         // Car body
         const bodyGeo = new THREE.BoxGeometry(3.8, 2.5, 7.6);
-        const bodyMat = new THREE.MeshBasicMaterial({ color: 0xff4444 });
+        const bodyMat = new THREE.MeshBasicMaterial({ color: settings.getHex('carBodyColor') });
         const body = new THREE.Mesh(bodyGeo, bodyMat);
         group.add(body);
 
         // Roof
         const roofGeo = new THREE.BoxGeometry(3.15, 1.5, 3.8);
-        const roofMat = new THREE.MeshBasicMaterial({ color: 0xcc3333 });
+        const roofMat = new THREE.MeshBasicMaterial({ color: settings.getHex('carRoofColor') });
         const roof = new THREE.Mesh(roofGeo, roofMat);
         roof.position.y = 1.9;
         roof.position.z = -0.6;
@@ -480,7 +481,7 @@ class RushingCar {
 
         // Headlights
         const lightGeo = new THREE.SphereGeometry(0.4, 6, 6);
-        const lightMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+        const lightMat = new THREE.MeshBasicMaterial({ color: settings.getHex('carLightColor') });
         const lightL = new THREE.Mesh(lightGeo, lightMat);
         lightL.position.set(-1.25, 0, 3.9);
         group.add(lightL);
@@ -492,9 +493,6 @@ class RushingCar {
         const edges = new THREE.EdgesGeometry(bodyGeo);
         const lineMat = new THREE.LineBasicMaterial({ color: 0x000000 });
         group.add(new THREE.LineSegments(edges, lineMat));
-
-        this.mesh = group;
-        this.mesh.position.copy(this.position);
 
         this.mesh = group;
         this.mesh.position.copy(this.position);
@@ -599,33 +597,31 @@ class EnemyShooter {
 
         // Body - diamond shape
         const bodyGeo = new THREE.OctahedronGeometry(1.5, 0);
-        const bodyMat = new THREE.MeshBasicMaterial({
-            color: 0xff6600,
+        this.bodyMat = new THREE.MeshBasicMaterial({
+            color: settings.getHex('enemyBodyColor'),
             transparent: true,
             opacity: 0.9
         });
-        this.baseBodyColor = new THREE.Color(0xff6600); // 追記
-        this.bodyMat = bodyMat; // 保持しておく
-        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        this.baseBodyColor = new THREE.Color(settings.getHex('enemyBodyColor'));
+        const body = new THREE.Mesh(bodyGeo, this.bodyMat);
         group.add(body);
 
         // Eye
         const eyeGeo = new THREE.SphereGeometry(0.4, 8, 8);
-        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const eyeMat = new THREE.MeshBasicMaterial({ color: settings.getHex('enemyEyeColor') });
         const eye = new THREE.Mesh(eyeGeo, eyeMat);
         eye.position.z = 1.3;
         group.add(eye);
 
         // Energy ring
         const ringGeo = new THREE.TorusGeometry(2, 0.15, 8, 16);
-        const ringMat = new THREE.MeshBasicMaterial({
-            color: 0xff6600,
+        this.ringMat = new THREE.MeshBasicMaterial({
+            color: settings.getHex('enemyBodyColor'),
             transparent: true,
             opacity: 0.5
         });
-        this.baseRingColor = new THREE.Color(0xff6600); // 追記
-        this.ringMat = ringMat; // 保持しておく
-        this.ring = new THREE.Mesh(ringGeo, ringMat);
+        this.baseRingColor = new THREE.Color(settings.getHex('enemyBodyColor'));
+        this.ring = new THREE.Mesh(ringGeo, this.ringMat);
         group.add(this.ring);
 
         // Outline
@@ -768,7 +764,7 @@ class Mine {
         // Mine body - spiked sphere
         const bodyGeo = new THREE.SphereGeometry(this.radius, 8, 8);
         const bodyMat = new THREE.MeshBasicMaterial({
-            color: 0x888888,
+            color: settings.getHex('mineBodyColor'),
             transparent: true,
             opacity: 0.9
         });
@@ -777,7 +773,7 @@ class Mine {
 
         // Spikes
         const spikeGeo = new THREE.ConeGeometry(0.2, 0.6, 4);
-        const spikeMat = new THREE.MeshBasicMaterial({ color: 0x666666 });
+        const spikeMat = new THREE.MeshBasicMaterial({ color: settings.getHex('mineSpikeColor') });
         for (let i = 0; i < 12; i++) {
             const spike = new THREE.Mesh(spikeGeo, spikeMat);
             const theta = Math.random() * Math.PI * 2;
@@ -973,7 +969,7 @@ class DividingWall {
 
         const geo = new THREE.BoxGeometry(width, height, depth);
         const mat = new THREE.MeshBasicMaterial({
-            color: 0x4444ff,
+            color: settings.getHex('wallColor'),
             transparent: true,
             opacity: 0.0
         });
@@ -989,7 +985,7 @@ class DividingWall {
         // Wireframe overlay
         const edges = new THREE.EdgesGeometry(geo);
         const lineMat = new THREE.LineBasicMaterial({
-            color: 0x6666ff,
+            color: settings.getHex('wallWireColor'),
             transparent: true,
             opacity: 0.0
         });
@@ -1085,13 +1081,13 @@ class FruitTree {
 
         // Trunk
         const trunkGeo = new THREE.CylinderGeometry(0.5, 0.8, 6, 6);
-        const trunkMat = new THREE.MeshBasicMaterial({ color: 0x8B4513 });
+        const trunkMat = new THREE.MeshBasicMaterial({ color: settings.getHex('treeTrunkColor') });
         const trunk = new THREE.Mesh(trunkGeo, trunkMat);
         group.add(trunk);
 
         // Canopy - several spheres
         const canopyMat = new THREE.MeshBasicMaterial({
-            color: 0x228B22,
+            color: settings.getHex('treeCanopyColor'),
             transparent: true,
             opacity: 0.8
         });
@@ -1252,7 +1248,7 @@ class BulletSpeedUp {
         );
         const edges = new THREE.EdgesGeometry(geo);
         const mat = new THREE.LineBasicMaterial({
-            color: 0xff2222,
+            color: settings.getHex('speedUpColor'),
             transparent: true,
             opacity: 0.6
         });
@@ -1312,7 +1308,7 @@ class BouncingProjectiles {
         );
         const edges = new THREE.EdgesGeometry(geo);
         const mat = new THREE.LineBasicMaterial({
-            color: 0x22ccff,
+            color: settings.getHex('bounceColor'),
             transparent: true,
             opacity: 0.6
         });
@@ -1371,7 +1367,7 @@ class ZigzagBullets {
         );
         const edges = new THREE.EdgesGeometry(geo);
         const mat = new THREE.LineBasicMaterial({
-            color: 0xffaa00,
+            color: settings.getHex('zigzagColor'),
             transparent: true,
             opacity: 0.6
         });
@@ -1416,7 +1412,7 @@ class LargeHomingBullet {
         this.radius = 1.2; // 通常弾(0.3)の4倍相当だが、依頼通りさらに2倍にする
         this.speed = 20;
         this.gimmickName = 'Homing';
-        this.baseColor = new THREE.Color(0xaa00ff); // 追記
+        this.baseColor = new THREE.Color(settings.getHex('largeHomingColor')); // 追記
 
         // Spawn at a random edge
         const side = Math.floor(Math.random() * 4);
@@ -1437,7 +1433,7 @@ class LargeHomingBullet {
     createMesh() {
         const geo = new THREE.SphereGeometry(this.radius, 12, 8);
         const mat = new THREE.MeshBasicMaterial({
-            color: 0xaa00ff,
+            color: settings.getHex('largeHomingColor'),
             transparent: true,
             opacity: 0.95
         });

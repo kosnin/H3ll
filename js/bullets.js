@@ -1,10 +1,12 @@
 // Bullets module - handles all projectile types and patterns
 import * as THREE from 'three';
 import { playLaserSound } from './audio.js';
+import settings from './settings.js';
 
 // Base Bullet class
 class Bullet {
-    constructor(scene, position, velocity, radius = 0.3, color = 0xff3366) {
+    constructor(scene, position, velocity, radius = 0.3, color = null) {
+        if (color === null) color = settings.getHex('bulletColor');
         this.scene = scene;
         this.position = position.clone();
         this.velocity = velocity.clone();
@@ -183,7 +185,7 @@ class Bullet {
 // Homing Bullet - tracks player
 class HomingBullet extends Bullet {
     constructor(scene, position, target, speed = 8) {
-        super(scene, position, new THREE.Vector3(), 0.4, 0x33ffcc);
+        super(scene, position, new THREE.Vector3(), 0.4, settings.getHex('homingBulletColor'));
         this.target = target;
         this.speed = speed;
         this.turnSpeed = 2;
@@ -249,7 +251,7 @@ class LaserWarning {
 
         const geometry = new THREE.CylinderGeometry(0.15, 0.15, length, 6);
         const material = new THREE.MeshBasicMaterial({
-            color: 0xff4444,
+            color: settings.getHex('laserWarningColor'),
             transparent: true,
             opacity: 0.3
         });
@@ -298,7 +300,7 @@ class Laser {
         this.end = end.clone();
         this.radius = 0.8;
 
-        this.baseColor = new THREE.Color(0xffcc00);
+        this.baseColor = new THREE.Color(settings.getHex('laserColor'));
         this.createMesh();
     }
 
@@ -308,7 +310,7 @@ class Laser {
 
         const geometry = new THREE.CylinderGeometry(this.radius, this.radius, length, 8);
         const material = new THREE.MeshBasicMaterial({
-            color: 0xffcc00,
+            color: settings.getHex('laserColor'),
             transparent: true,
             opacity: 0.8
         });
@@ -326,7 +328,7 @@ class Laser {
         // Glow outline
         const glowGeo = new THREE.CylinderGeometry(this.radius * 1.5, this.radius * 1.5, length, 8);
         const glowMat = new THREE.MeshBasicMaterial({
-            color: 0xff6600,
+            color: settings.getHex('laserGlowColor'),
             transparent: true,
             opacity: 0.3,
             wireframe: true
@@ -475,7 +477,8 @@ export class BulletManager {
         return paths;
     }
 
-    spawnBullet(position, velocity, radius = 0.3, color = 0xff3366) {
+    spawnBullet(position, velocity, radius = 0.3, color = null) {
+        if (color === null) color = settings.getHex('bulletColor');
         const scaledVelocity = velocity.clone().multiplyScalar(this.speedMultiplier);
         const bullet = new Bullet(this.scene, position, scaledVelocity, radius, color);
         this.bullets.push(bullet);
@@ -534,7 +537,7 @@ export class BulletManager {
                 Math.cos(phi)
             ).multiplyScalar(speed);
 
-            this.spawnBullet(center.clone(), velocity, radius, 0xff3366);
+            this.spawnBullet(center.clone(), velocity, radius, settings.getHex('bulletColor'));
         }
     }
 
@@ -549,7 +552,7 @@ export class BulletManager {
             direction.normalize();
 
             const velocity = direction.multiplyScalar(speed);
-            this.spawnBullet(origin.clone(), velocity, 0.3, 0x33ffcc);
+            this.spawnBullet(origin.clone(), velocity, 0.3, settings.getHex('homingBulletColor'));
         }
     }
 
@@ -568,7 +571,7 @@ export class BulletManager {
                 .add(v.clone().multiplyScalar(Math.sin(angle)));
 
             const velocity = direction.multiplyScalar(speed);
-            this.spawnBullet(center.clone(), velocity, radius, 0xffcc00);
+            this.spawnBullet(center.clone(), velocity, radius, settings.getHex('laserColor'));
         }
     }
 
