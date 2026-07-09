@@ -8,6 +8,7 @@ import { EffectsManager } from './effects.js';
 import { PhaseManager } from './phases.js';
 import { UIManager } from './ui.js';
 import { playButtonSound, playDeathSound } from './audio.js';
+import settings from './settings.js';
 
 class Game {
     constructor() {
@@ -44,10 +45,10 @@ class Game {
     initThree() {
         // Scene
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x111111);
+        this.scene.background = new THREE.Color(settings.getHex('stageBgColor'));
 
         // === #4: Fog (depth fog for spatial awareness) ===
-        this.scene.fog = new THREE.Fog(0x111111, 40, 120);
+        this.scene.fog = new THREE.Fog(settings.getHex('stageBgColor'), 40, 120);
 
         // Camera - 視野角を標準に戻す (パース強調のため個別スケーリングを併用)
         this.camera = new THREE.PerspectiveCamera(
@@ -73,9 +74,6 @@ class Game {
         // Create background grid
         this.createBackgroundGrid();
 
-        // Ambient particles for atmosphere
-        this.createAmbientParticles();
-
         // Simple lighting
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         this.scene.add(ambientLight);
@@ -90,11 +88,12 @@ class Game {
 
         const edges = new THREE.EdgesGeometry(geometry);
         const material = new THREE.LineBasicMaterial({
-            color: 0x444444,
+            color: settings.getHex('stageGridColor'),
             transparent: true,
             opacity: 0.5
         });
 
+        this.boundaryMat = material;
         this.boundaryMesh = new THREE.LineSegments(edges, material);
         this.scene.add(this.boundaryMesh);
     }
@@ -126,45 +125,24 @@ class Game {
         };
 
         // 地面 (XZ平面) - 幅44, 奥行き28 の矩形
-        const groundGrid = createWallGrid(this.bounds.x * 2, this.bounds.z * 2, 20, 0x444444);
+        const groundGrid = createWallGrid(this.bounds.x * 2, this.bounds.z * 2, 20, settings.getHex('stageGridColor'));
         groundGrid.rotation.x = -Math.PI / 2;
         groundGrid.position.y = -this.bounds.y;
         this.scene.add(groundGrid);
+        this.groundGridMat = groundGrid.material;
 
         // 奥の壁 (XY平面) - 幅44, 高さ44
-        const backGrid = createWallGrid(this.bounds.x * 2, this.bounds.y * 2, 20, 0x333333);
+        const backGrid = createWallGrid(this.bounds.x * 2, this.bounds.y * 2, 20, settings.getHex('stageGridSubColor'));
         backGrid.position.set(0, 0, -this.bounds.z);
         this.scene.add(backGrid);
+        this.backGridMat = backGrid.material;
 
         // 左の壁 (YZ平面) - 奥行き28, 高さ44
-        const leftGrid = createWallGrid(this.bounds.z * 2, this.bounds.y * 2, 20, 0x333333);
+        const leftGrid = createWallGrid(this.bounds.z * 2, this.bounds.y * 2, 20, settings.getHex('stageGridSubColor'));
         leftGrid.rotation.y = Math.PI / 2;
         leftGrid.position.set(-this.bounds.x, 0, 0);
         this.scene.add(leftGrid);
-    }
-
-    createAmbientParticles() {
-        const particleCount = 100;
-        const geometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(particleCount * 3);
-
-        for (let i = 0; i < particleCount; i++) {
-            positions[i * 3] = (Math.random() - 0.5) * 80;
-            positions[i * 3 + 1] = (Math.random() - 0.5) * 60;
-            positions[i * 3 + 2] = (Math.random() - 0.5) * 80;
-        }
-
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-        const material = new THREE.PointsMaterial({
-            color: 0x333333,
-            size: 0.3,
-            transparent: true,
-            opacity: 0.5
-        });
-
-        this.ambientParticles = new THREE.Points(geometry, material);
-        this.scene.add(this.ambientParticles);
+        this.leftGridMat = leftGrid.material;
     }
 
     initGame() {
@@ -268,7 +246,7 @@ class Game {
     onPointerMove(e) {
         if (this.state === 'playing') {
             const normalizedX = (e.clientX / window.innerWidth) * 2 - 1;
-            const normalizedY = (e.clientY / window.innerHeight) * 2 - 1;
+            const normalizedY = -(e.clientY / window.innerHeight) * 2 + 1;
             this.player.setMousePosition(normalizedX, normalizedY);
         }
     }
@@ -279,7 +257,7 @@ class Game {
         }
 
         // Don't start/restart if ranking is open or clicking UI elements
-        if (this.ui.isRankingOpen()) return;
+        if (this.ui.isRankingOpen() || this.ui.isSettingsOpen()) return;
         if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
 
         if (this.state === 'title') {
@@ -326,7 +304,17 @@ class Game {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
+    applySettings() {
+        this.scene.background.setHex(settings.getHex('stageBgColor'));
+        this.scene.fog.color.setHex(settings.getHex('stageBgColor'));
+        if (this.boundaryMat) this.boundaryMat.color.setHex(settings.getHex('stageGridColor'));
+        if (this.groundGridMat) this.groundGridMat.color.setHex(settings.getHex('stageGridColor'));
+        if (this.backGridMat) this.backGridMat.color.setHex(settings.getHex('stageGridSubColor'));
+        if (this.leftGridMat) this.leftGridMat.color.setHex(settings.getHex('stageGridSubColor'));
+    }
+
     startGame() {
+        this.applySettings();
         this.state = 'playing';
         this.gameTime = 0;
         playButtonSound();
@@ -375,10 +363,7 @@ class Game {
             this.updateGame(deltaTime);
         }
 
-        // Update ambient particles
-        if (this.ambientParticles) {
-            this.ambientParticles.rotation.y += deltaTime * 0.02;
-        }
+
 
         // Update camera (always, for zoom/rotate on title/death screens)
         this.updateCamera(deltaTime);
@@ -405,11 +390,12 @@ class Game {
 
         // Update player with camera angle and position for adaptive movement and scaling
         this.player.cameraTheta = this.cameraTheta;
-        this.player.update(deltaTime, this.camera.position);
+        this.player.update(deltaTime, this.camera);
 
         // Apply wall constraints from gimmicks
         const constrainedPos = this.gimmickManager.constrainPlayerPosition(
             this.player.getPosition(),
+            this.player.lastPosition,
             this.player.getRadius()
         );
         this.player.position.copy(constrainedPos);

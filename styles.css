@@ -4,6 +4,46 @@
     box-sizing: border-box;
 }
 
+:root {
+    --text-color: #ffffff;
+    --text-glow-color: #ff003c;
+    --sub-text-color: #aaaaaa;
+    --btn-bg-color: #111115;
+    --btn-border-color: #555555;
+    --btn-text-color: #aaaaaa;
+    --register-btn-bg-color: #ff003c;
+    --register-btn-text-color: #ffffff;
+    --input-bg-color: #111115;
+    --input-border-color: #555555;
+    --input-focus-border-color: #ff003c;
+    --input-text-color: #ffffff;
+
+    /* Screen Backgrounds */
+    --screen-bg-color: rgba(10, 10, 15, 0.95);
+    --death-screen-bg-color: rgba(15, 0, 0, 0.95);
+    --ranking-screen-bg-color: rgba(10, 10, 15, 0.97);
+    --settings-screen-bg-color: rgba(10, 10, 15, 0.98);
+
+    /* Ranking Details */
+    --ranking-title-color: #ffffff;
+    --ranking-entry-color: #aaaaaa;
+    --ranking-border-color: #222222;
+    --ranking-rank-color: #666666;
+    --ranking-score-color: #ffffff;
+    --status-bg-color: #15151f;
+    --status-border-color: #333333;
+    --status-label-color: #666666;
+    --status-value-color: #ffffff;
+
+    /* Settings Details */
+    --settings-group-bg-color: #15151f;
+    --settings-group-border-color: #333333;
+    --settings-input-bg-color: #1c1c24;
+    --settings-input-border-color: #444444;
+    --settings-input-text-color: #ffffff;
+    --settings-preview-border-color: #555555;
+}
+
 body {
     overflow: hidden;
     background: #0a0a0a;
@@ -36,9 +76,8 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background: rgba(10, 10, 15, 0.95);
+    background: var(--screen-bg-color);
     z-index: 100;
-    cursor: pointer;
 }
 
 .hidden {
@@ -48,10 +87,10 @@ body {
 /* Title Screen */
 .title {
     font-size: clamp(3.5rem, 12vw, 10rem);
-    color: #fff;
+    color: var(--text-color);
     text-shadow:
-        0 0 20px rgba(255, 0, 60, 0.6),
-        0 0 60px rgba(255, 0, 60, 0.3);
+        0 0 20px color-mix(in srgb, var(--text-glow-color) 60%, transparent),
+        0 0 60px color-mix(in srgb, var(--text-glow-color) 30%, transparent);
     letter-spacing: 0.15em;
     animation: titleGlow 2s ease-in-out infinite;
 }
@@ -61,29 +100,29 @@ body {
     0%,
     100% {
         text-shadow:
-            0 0 20px rgba(255, 0, 60, 0.6),
-            0 0 60px rgba(255, 0, 60, 0.3);
+            0 0 20px color-mix(in srgb, var(--text-glow-color) 60%, transparent),
+            0 0 60px color-mix(in srgb, var(--text-glow-color) 30%, transparent);
     }
 
     50% {
         text-shadow:
-            0 0 30px rgba(255, 0, 60, 0.8),
-            0 0 80px rgba(255, 0, 60, 0.5),
-            0 0 120px rgba(255, 0, 60, 0.2);
+            0 0 30px color-mix(in srgb, var(--text-glow-color) 80%, transparent),
+            0 0 80px color-mix(in srgb, var(--text-glow-color) 50%, transparent),
+            0 0 120px color-mix(in srgb, var(--text-glow-color) 20%, transparent);
     }
 }
 
 .subtitle {
     font-size: clamp(2rem, 8vw, 6rem);
-    color: #ff003c;
-    text-shadow: 0 0 30px rgba(255, 0, 60, 0.5);
+    color: var(--text-glow-color);
+    text-shadow: 0 0 30px color-mix(in srgb, var(--text-glow-color) 50%, transparent);
     margin-top: -10px;
     letter-spacing: 0.3em;
 }
 
 .instruction {
     font-size: 1.4rem;
-    color: #aaa;
+    color: var(--sub-text-color);
     margin-top: 60px;
     animation: blink 1s ease-in-out infinite;
     letter-spacing: 0.2em;
@@ -104,19 +143,22 @@ body {
 /* Shared UI Button */
 .ui-btn {
     font-family: 'Russo One', 'Noto Sans JP', sans-serif;
-    background: transparent;
-    color: #aaa;
-    border: 1px solid #555;
+    background: var(--btn-bg-color);
+    color: var(--btn-text-color);
+    border: 1px solid var(--btn-border-color);
     padding: 8px 24px;
     font-size: 1rem;
     cursor: pointer;
     letter-spacing: 0.1em;
-    transition: color 0.2s, border-color 0.2s;
+    transition: filter 0.2s, transform 0.1s;
 }
 
 .ui-btn:hover {
-    color: #fff;
-    border-color: #fff;
+    filter: brightness(1.3);
+}
+
+.ui-btn:active {
+    transform: scale(0.97);
 }
 
 /* Title Screen Ranking Button */
@@ -135,24 +177,24 @@ body {
 
 #timer {
     font-size: 3rem;
-    color: #fff;
+    color: var(--text-color);
     text-shadow:
-        0 0 10px rgba(255, 255, 255, 0.3);
+        0 0 10px color-mix(in srgb, var(--text-glow-color) 40%, transparent);
     letter-spacing: 0.1em;
 }
 
 /* Death Screen */
 #death-screen {
-    background: rgba(15, 0, 0, 0.95);
+    background: var(--death-screen-bg-color);
 }
 
 .death-title {
     font-size: clamp(4rem, 15vw, 10rem);
-    color: #ff0033;
+    color: var(--text-color);
     text-shadow:
-        0 0 40px rgba(255, 0, 51, 0.8),
-        0 0 100px rgba(255, 0, 51, 0.5),
-        0 0 200px rgba(255, 0, 51, 0.3);
+        0 0 40px color-mix(in srgb, var(--text-glow-color) 80%, transparent),
+        0 0 100px color-mix(in srgb, var(--text-glow-color) 50%, transparent),
+        0 0 200px color-mix(in srgb, var(--text-glow-color) 30%, transparent);
     animation: deathPulse 0.5s ease-in-out 3;
     letter-spacing: 0.2em;
 }
@@ -178,34 +220,34 @@ body {
 
 .survival-time {
     font-size: 2.5rem;
-    color: #fff;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    color: var(--text-color);
+    text-shadow: 0 0 10px color-mix(in srgb, var(--text-glow-color) 30%, transparent);
 }
 
 .register-btn {
-    /* 潰れにくく可読性の高いフォントに変更 */
     font-family: 'Noto Sans JP', sans-serif;
     font-size: 1.1rem;
-    padding: 12px 18px; /* 余白を削減 */
-    background: #ff003c;
-    color: #fff;
+    padding: 12px 18px;
+    background: var(--register-btn-bg-color);
+    color: var(--register-btn-text-color);
     border: none;
-    box-shadow: 0 0 15px rgba(255, 0, 60, 0.4);
+    box-shadow: 0 0 15px color-mix(in srgb, var(--register-btn-bg-color) 40%, transparent);
     font-weight: 700;
-    transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+    transition: transform 0.2s, filter 0.2s, box-shadow 0.2s;
     white-space: nowrap;
-    letter-spacing: 0.02em; /* 日本語・英数混在向けに調整 */
+    letter-spacing: 0.02em;
     flex-shrink: 0;
 }
 
 .register-btn:hover {
-    background: #ff2b5f;
+    filter: brightness(1.15);
     transform: scale(1.05);
-    box-shadow: 0 0 25px rgba(255, 0, 60, 0.6);
+    box-shadow: 0 0 25px color-mix(in srgb, var(--register-btn-bg-color) 60%, transparent);
 }
 
 .register-btn:disabled {
     background: #444;
+    color: #888;
     box-shadow: none;
     transform: none;
     cursor: default;
@@ -220,9 +262,10 @@ body {
 
 .username-input {
     font-family: 'Noto Sans JP', sans-serif;
-    background: transparent;
-    border: 1px solid #555;
-    color: #fff;
+    background: var(--input-bg-color);
+    border: 1px solid var(--input-border-color);
+    color: var(--input-text-color);
+    caret-color: inherit;
     padding: 10px 16px;
     font-size: 1.1rem;
     width: 240px;
@@ -231,7 +274,7 @@ body {
 }
 
 .username-input:focus {
-    border-color: #ff003c;
+    border-color: var(--input-focus-border-color);
 }
 
 .submit-btn {
@@ -245,7 +288,7 @@ body {
 
 .restart-instruction {
     font-size: 1.1rem;
-    color: #666;
+    color: var(--sub-text-color);
     margin-top: 60px;
     animation: blink 1s ease-in-out infinite;
     letter-spacing: 0.2em;
@@ -253,21 +296,22 @@ body {
 
 /* Ranking Screen */
 #ranking-screen {
-    background: rgba(10, 10, 15, 0.97);
+    background: var(--ranking-screen-bg-color);
     cursor: default;
 }
 
 .ranking-title {
     font-size: 2.5rem;
-    color: #fff;
+    color: var(--ranking-title-color);
     letter-spacing: 0.2em;
     margin-bottom: 30px;
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+    text-shadow: 0 0 15px color-mix(in srgb, var(--ranking-title-color) 20%, transparent);
 }
 
 .ranking-list {
     width: 400px;
-    max-height: 85vh; /* 20件がスクロールなしで見られるように高さを拡大 */
+    max-height: 85vh;
+    /* 20件がスクロールなしで見られるように高さを拡大 */
     overflow-y: visible;
 }
 
@@ -275,8 +319,8 @@ body {
     display: flex;
     justify-content: space-between;
     padding: 8px 16px;
-    border-bottom: 1px solid #222;
-    color: #aaa;
+    border-bottom: 1px solid var(--ranking-border-color);
+    color: var(--ranking-entry-color);
     font-size: 1rem;
     letter-spacing: 0.05em;
 }
@@ -285,7 +329,7 @@ body {
     width: 40px;
     text-align: right;
     margin-right: 16px;
-    color: #666;
+    color: var(--ranking-rank-color);
 }
 
 .ranking-entry .name {
@@ -295,18 +339,26 @@ body {
 .ranking-entry .score {
     width: 80px;
     text-align: right;
-    color: #fff;
+    color: var(--ranking-score-color);
 }
 
 .ranking-entry:nth-child(1) .rank,
-.ranking-entry:nth-child(1) .name { color: #ffd700; }
+.ranking-entry:nth-child(1) .name {
+    color: #ffd700;
+}
+
 .ranking-entry:nth-child(2) .rank,
-.ranking-entry:nth-child(2) .name { color: #c0c0c0; }
+.ranking-entry:nth-child(2) .name {
+    color: #c0c0c0;
+}
+
 .ranking-entry:nth-child(3) .rank,
-.ranking-entry:nth-child(3) .name { color: #cd7f32; }
+.ranking-entry:nth-child(3) .name {
+    color: #cd7f32;
+}
 
 .ranking-empty {
-    color: #444;
+    color: var(--ranking-rank-color);
     font-size: 1rem;
     padding: 20px;
 }
@@ -326,18 +378,18 @@ body {
     width: 220px;
     text-align: left;
     padding: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid #333;
+    background: var(--status-bg-color);
+    border: 1px solid var(--status-border-color);
     display: flex;
     flex-direction: column;
 }
 
 .column-label {
     font-size: 0.8rem;
-    color: #666;
+    color: var(--status-label-color);
     margin-bottom: 20px;
     letter-spacing: 0.2em;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--status-border-color);
     padding-bottom: 5px;
 }
 
@@ -347,19 +399,19 @@ body {
 
 .player-status-entry .label {
     font-size: 0.7rem;
-    color: #888;
+    color: var(--status-label-color);
     display: block;
 }
 
 .player-status-entry .value {
     font-size: 1.2rem;
-    color: #fff;
+    color: var(--status-value-color);
     display: block;
     word-break: break-all;
 }
 
 .player-status-entry.your-rank .value {
-    color: #ff003c;
+    color: var(--text-glow-color);
     font-size: 2.2rem;
     font-weight: 700;
 }
@@ -368,4 +420,145 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Settings Screen */
+#settings-screen {
+    background: var(--settings-screen-bg-color);
+}
+
+.settings-title {
+    font-size: 2.5rem;
+    color: var(--text-color);
+    letter-spacing: 0.2em;
+    margin-bottom: 20px;
+    text-shadow: 0 0 15px color-mix(in srgb, var(--text-color) 20%, transparent);
+}
+
+.settings-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: 90vw;
+    max-width: 1000px;
+    max-height: 85vh;
+}
+
+.settings-content {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    align-items: flex-start;
+    width: 100%;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.settings-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex: 1;
+    min-width: 0;
+}
+
+.settings-group {
+    background: var(--settings-group-bg-color);
+    border: 1px solid var(--settings-group-border-color);
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.settings-group-title {
+    font-size: 1.1rem;
+    color: var(--text-glow-color);
+    margin-bottom: 15px;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid var(--settings-group-border-color);
+    padding-bottom: 5px;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.setting-item label {
+    color: var(--sub-text-color);
+    font-size: 0.9rem;
+    font-family: 'Noto Sans JP', sans-serif;
+}
+
+.color-input-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.color-input-container input[type="text"] {
+    background: var(--settings-input-bg-color);
+    border: 1px solid var(--settings-input-border-color);
+    color: var(--settings-input-text-color);
+    font-family: 'Russo One', sans-serif;
+    font-size: 0.9rem;
+    width: 90px;
+    padding: 4px 6px;
+    text-align: center;
+    outline: none;
+    border-radius: 2px;
+    transition: border-color 0.2s;
+}
+
+.color-input-container input[type="text"]:focus {
+    border-color: var(--text-glow-color);
+}
+
+.color-picker-input {
+    -webkit-appearance: none;
+    border: 1px solid var(--settings-preview-border-color);
+    border-radius: 2px;
+    width: 45px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.color-picker-input::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.color-picker-input::-webkit-color-swatch {
+    border: none;
+    border-radius: 2px;
+}
+
+.settings-actions {
+    display: flex;
+    gap: 20px;
+    margin-top: 10px;
+}
+
+.settings-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+/* Force standard mouse cursor on the game canvas and playing state */
+#game-canvas {
+    cursor: default !important;
+}
+
+#game-container.playing {
+    cursor: default !important;
+}
+
+/* Ensure body uses default cursor */
+body {
+    cursor: default;
 }

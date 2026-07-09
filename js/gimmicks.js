@@ -1,5 +1,6 @@
-// Gimmicks module - all 7 gimmick types + warning system
+// Gimmicks module - handles all stage hazards and enemy objects
 import * as THREE from 'three';
+import settings from './settings.js';
 import { playGimmickSound } from './audio.js';
 
 // ============================================================
@@ -21,7 +22,7 @@ class WarningIndicator {
         // Exclamation mark body (tall box)
         const bodyGeo = new THREE.BoxGeometry(0.6, 2.5, 0.6);
         const mat = new THREE.MeshBasicMaterial({
-            color: 0xff0000,
+            color: settings.getHex('speedUpColor'),
             transparent: true,
             opacity: 0.9
         });
@@ -36,9 +37,9 @@ class WarningIndicator {
         group.add(dot);
 
         // Glow ring
-        const ringGeo = new THREE.RingGeometry(1.8, 2.2, 16);
+        const ringGeo = new THREE.RingGeometry(1.2, 1.5, 32);
         const ringMat = new THREE.MeshBasicMaterial({
-            color: 0xff0000,
+            color: settings.getHex('warningColor'),
             transparent: true,
             opacity: 0.4,
             side: THREE.DoubleSide
@@ -57,7 +58,7 @@ class WarningIndicator {
         // Pulsing effect
         const pulse = Math.sin(this.age * 20) * 0.5 + 0.5;
         let baseScale = 0.8 + pulse * 0.4;
-        
+
         // Height-based scaling
         if (boundsY) {
             const normalizedHeight = (this.mesh.position.y + boundsY) / (2 * boundsY);
@@ -107,7 +108,7 @@ class PoisonFog {
         // Create fog particle cloud - danger zone in center
         const fogCount = 40; // Reduced per instance
         const mat = new THREE.MeshBasicMaterial({
-            color: 0x33ff33,
+            color: settings.getHex('poisonFogColor'),
             transparent: true,
             opacity: 0.0,
             side: THREE.DoubleSide
@@ -151,7 +152,7 @@ class PoisonFog {
         for (let i = 0; i < 3; i++) {
             const ringGeo = new THREE.RingGeometry(this.radius - 0.3, this.radius, 32);
             const ringMat = new THREE.MeshBasicMaterial({
-                color: 0x44ff44,
+                color: settings.getHex('poisonFogColor'),
                 transparent: true,
                 opacity: 0.0,
                 side: THREE.DoubleSide,
@@ -263,7 +264,7 @@ class GiantHand {
         const group = new THREE.Group();
 
         const material = new THREE.MeshBasicMaterial({
-            color: 0xff6644,
+            color: settings.getHex('giantHandColor'),
             transparent: true,
             opacity: 0.95
         });
@@ -283,9 +284,9 @@ class GiantHand {
         const fingerData = [
             { x: -5.5, z: 7.5, angle: -0.45, len: 11, label: 'pinky' },
             { x: -2.5, z: 8.5, angle: -0.15, len: 13, label: 'ring' },
-            { x:  0.5, z: 9,   angle: 0.05,  len: 15, label: 'middle' },
-            { x:  3.5, z: 8.5, angle: 0.25,  len: 13, label: 'index' },
-            { x:  6.5, z: 4,   angle: 0.80,  len: 10, label: 'thumb' },
+            { x: 0.5, z: 9, angle: 0.05, len: 15, label: 'middle' },
+            { x: 3.5, z: 8.5, angle: 0.25, len: 13, label: 'index' },
+            { x: 6.5, z: 4, angle: 0.80, len: 10, label: 'thumb' },
         ];
 
         for (const f of fingerData) {
@@ -455,13 +456,13 @@ class RushingCar {
 
         // Car body
         const bodyGeo = new THREE.BoxGeometry(3.8, 2.5, 7.6);
-        const bodyMat = new THREE.MeshBasicMaterial({ color: 0xff4444 });
+        const bodyMat = new THREE.MeshBasicMaterial({ color: settings.getHex('carBodyColor') });
         const body = new THREE.Mesh(bodyGeo, bodyMat);
         group.add(body);
 
         // Roof
         const roofGeo = new THREE.BoxGeometry(3.15, 1.5, 3.8);
-        const roofMat = new THREE.MeshBasicMaterial({ color: 0xcc3333 });
+        const roofMat = new THREE.MeshBasicMaterial({ color: settings.getHex('carRoofColor') });
         const roof = new THREE.Mesh(roofGeo, roofMat);
         roof.position.y = 1.9;
         roof.position.z = -0.6;
@@ -480,7 +481,7 @@ class RushingCar {
 
         // Headlights
         const lightGeo = new THREE.SphereGeometry(0.4, 6, 6);
-        const lightMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+        const lightMat = new THREE.MeshBasicMaterial({ color: settings.getHex('carLightColor') });
         const lightL = new THREE.Mesh(lightGeo, lightMat);
         lightL.position.set(-1.25, 0, 3.9);
         group.add(lightL);
@@ -492,9 +493,6 @@ class RushingCar {
         const edges = new THREE.EdgesGeometry(bodyGeo);
         const lineMat = new THREE.LineBasicMaterial({ color: 0x000000 });
         group.add(new THREE.LineSegments(edges, lineMat));
-
-        this.mesh = group;
-        this.mesh.position.copy(this.position);
 
         this.mesh = group;
         this.mesh.position.copy(this.position);
@@ -599,33 +597,31 @@ class EnemyShooter {
 
         // Body - diamond shape
         const bodyGeo = new THREE.OctahedronGeometry(1.5, 0);
-        const bodyMat = new THREE.MeshBasicMaterial({
-            color: 0xff6600,
+        this.bodyMat = new THREE.MeshBasicMaterial({
+            color: settings.getHex('enemyBodyColor'),
             transparent: true,
             opacity: 0.9
         });
-        this.baseBodyColor = new THREE.Color(0xff6600); // 追記
-        this.bodyMat = bodyMat; // 保持しておく
-        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        this.baseBodyColor = new THREE.Color(settings.getHex('enemyBodyColor'));
+        const body = new THREE.Mesh(bodyGeo, this.bodyMat);
         group.add(body);
 
         // Eye
         const eyeGeo = new THREE.SphereGeometry(0.4, 8, 8);
-        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const eyeMat = new THREE.MeshBasicMaterial({ color: settings.getHex('enemyEyeColor') });
         const eye = new THREE.Mesh(eyeGeo, eyeMat);
         eye.position.z = 1.3;
         group.add(eye);
 
         // Energy ring
         const ringGeo = new THREE.TorusGeometry(2, 0.15, 8, 16);
-        const ringMat = new THREE.MeshBasicMaterial({
-            color: 0xff6600,
+        this.ringMat = new THREE.MeshBasicMaterial({
+            color: settings.getHex('enemyBodyColor'),
             transparent: true,
             opacity: 0.5
         });
-        this.baseRingColor = new THREE.Color(0xff6600); // 追記
-        this.ringMat = ringMat; // 保持しておく
-        this.ring = new THREE.Mesh(ringGeo, ringMat);
+        this.baseRingColor = new THREE.Color(settings.getHex('enemyBodyColor'));
+        this.ring = new THREE.Mesh(ringGeo, this.ringMat);
         group.add(this.ring);
 
         // Outline
@@ -768,7 +764,7 @@ class Mine {
         // Mine body - spiked sphere
         const bodyGeo = new THREE.SphereGeometry(this.radius, 8, 8);
         const bodyMat = new THREE.MeshBasicMaterial({
-            color: 0x888888,
+            color: settings.getHex('mineBodyColor'),
             transparent: true,
             opacity: 0.9
         });
@@ -777,7 +773,7 @@ class Mine {
 
         // Spikes
         const spikeGeo = new THREE.ConeGeometry(0.2, 0.6, 4);
-        const spikeMat = new THREE.MeshBasicMaterial({ color: 0x666666 });
+        const spikeMat = new THREE.MeshBasicMaterial({ color: settings.getHex('mineSpikeColor') });
         for (let i = 0; i < 12; i++) {
             const spike = new THREE.Mesh(spikeGeo, spikeMat);
             const theta = Math.random() * Math.PI * 2;
@@ -880,7 +876,7 @@ class Mine {
             const normalizedHeight = (this.position.y + boundsY) / (2 * boundsY);
             const heightScale = 0.55 + normalizedHeight * 0.9;
             this.mesh.scale.setScalar(1.4 * heightScale);
-            
+
             for (const line of this.previewLines) {
                 line.scale.set(heightScale, 1.0, heightScale);
             }
@@ -973,7 +969,7 @@ class DividingWall {
 
         const geo = new THREE.BoxGeometry(width, height, depth);
         const mat = new THREE.MeshBasicMaterial({
-            color: 0x4444ff,
+            color: settings.getHex('wallColor'),
             transparent: true,
             opacity: 0.0
         });
@@ -989,7 +985,7 @@ class DividingWall {
         // Wireframe overlay
         const edges = new THREE.EdgesGeometry(geo);
         const lineMat = new THREE.LineBasicMaterial({
-            color: 0x6666ff,
+            color: settings.getHex('wallWireColor'),
             transparent: true,
             opacity: 0.0
         });
@@ -1021,25 +1017,41 @@ class DividingWall {
     }
 
     // Push player away from wall (no damage)
-    constrainPlayer(playerPos, playerRadius) {
+    constrainPlayer(playerPos, lastPlayerPos, playerRadius) {
         if (this.age < 0.1 || this.age > this.duration - 0.1) return playerPos;
 
         const wallThickness = 3.0; // Thick enough to prevent fast players passing through
         const pos = playerPos.clone();
 
         if (this.axis === 'x') {
-            const dist = Math.abs(pos.z - this.wallOffset);
-            if (dist < wallThickness) {
-                pos.z = pos.z > this.wallOffset
-                    ? this.wallOffset + wallThickness
-                    : this.wallOffset - wallThickness;
+            // Check if player crossed the wall line
+            const lastSign = Math.sign(lastPlayerPos.z - this.wallOffset);
+            const currSign = Math.sign(pos.z - this.wallOffset);
+            const crossed = lastSign !== 0 && currSign !== 0 && lastSign !== currSign;
+            const inside = Math.abs(pos.z - this.wallOffset) < wallThickness;
+
+            if (crossed || inside) {
+                // Keep the player on the side they were in the last frame
+                if (lastPlayerPos.z > this.wallOffset) {
+                    pos.z = this.wallOffset + wallThickness;
+                } else {
+                    pos.z = this.wallOffset - wallThickness;
+                }
             }
         } else {
-            const dist = Math.abs(pos.x - this.wallOffset);
-            if (dist < wallThickness) {
-                pos.x = pos.x > this.wallOffset
-                    ? this.wallOffset + wallThickness
-                    : this.wallOffset - wallThickness;
+            // Check if player crossed the wall line
+            const lastSign = Math.sign(lastPlayerPos.x - this.wallOffset);
+            const currSign = Math.sign(pos.x - this.wallOffset);
+            const crossed = lastSign !== 0 && currSign !== 0 && lastSign !== currSign;
+            const inside = Math.abs(pos.x - this.wallOffset) < wallThickness;
+
+            if (crossed || inside) {
+                // Keep the player on the side they were in the last frame
+                if (lastPlayerPos.x > this.wallOffset) {
+                    pos.x = this.wallOffset + wallThickness;
+                } else {
+                    pos.x = this.wallOffset - wallThickness;
+                }
             }
         }
 
@@ -1085,13 +1097,13 @@ class FruitTree {
 
         // Trunk
         const trunkGeo = new THREE.CylinderGeometry(0.5, 0.8, 6, 6);
-        const trunkMat = new THREE.MeshBasicMaterial({ color: 0x8B4513 });
+        const trunkMat = new THREE.MeshBasicMaterial({ color: settings.getHex('treeTrunkColor') });
         const trunk = new THREE.Mesh(trunkGeo, trunkMat);
         group.add(trunk);
 
         // Canopy - several spheres
         const canopyMat = new THREE.MeshBasicMaterial({
-            color: 0x228B22,
+            color: settings.getHex('treeCanopyColor'),
             transparent: true,
             opacity: 0.8
         });
@@ -1252,7 +1264,7 @@ class BulletSpeedUp {
         );
         const edges = new THREE.EdgesGeometry(geo);
         const mat = new THREE.LineBasicMaterial({
-            color: 0xff2222,
+            color: settings.getHex('speedUpColor'),
             transparent: true,
             opacity: 0.6
         });
@@ -1312,7 +1324,7 @@ class BouncingProjectiles {
         );
         const edges = new THREE.EdgesGeometry(geo);
         const mat = new THREE.LineBasicMaterial({
-            color: 0x22ccff,
+            color: settings.getHex('bounceColor'),
             transparent: true,
             opacity: 0.6
         });
@@ -1371,7 +1383,7 @@ class ZigzagBullets {
         );
         const edges = new THREE.EdgesGeometry(geo);
         const mat = new THREE.LineBasicMaterial({
-            color: 0xffaa00,
+            color: settings.getHex('zigzagColor'),
             transparent: true,
             opacity: 0.6
         });
@@ -1416,19 +1428,19 @@ class LargeHomingBullet {
         this.radius = 1.2; // 通常弾(0.3)の4倍相当だが、依頼通りさらに2倍にする
         this.speed = 20;
         this.gimmickName = 'Homing';
-        this.baseColor = new THREE.Color(0xaa00ff); // 追記
+        this.baseColor = new THREE.Color(settings.getHex('largeHomingColor')); // 追記
 
         // Spawn at a random edge
         const side = Math.floor(Math.random() * 4);
         const b = bounds;
-        switch(side) {
+        switch (side) {
             case 0: this.position = new THREE.Vector3(b.x + 2, 0, (Math.random() - 0.5) * b.z); break;
             case 1: this.position = new THREE.Vector3(-b.x - 2, 0, (Math.random() - 0.5) * b.z); break;
             case 2: this.position = new THREE.Vector3((Math.random() - 0.5) * b.x, 0, b.z + 2); break;
             case 3: this.position = new THREE.Vector3((Math.random() - 0.5) * b.x, 0, -b.z - 2); break;
         }
         this.position.y = (Math.random() - 0.5) * b.y;
-        
+
         this.velocity = new THREE.Vector3(0, 0, 0);
 
         this.createMesh();
@@ -1437,7 +1449,7 @@ class LargeHomingBullet {
     createMesh() {
         const geo = new THREE.SphereGeometry(this.radius, 12, 8);
         const mat = new THREE.MeshBasicMaterial({
-            color: 0xaa00ff,
+            color: settings.getHex('largeHomingColor'),
             transparent: true,
             opacity: 0.95
         });
@@ -1459,7 +1471,7 @@ class LargeHomingBullet {
 
         this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
         this.mesh.position.copy(this.position);
-        
+
         this.mesh.rotation.x += deltaTime * 4;
         this.mesh.rotation.y += deltaTime * 5;
 
@@ -1477,7 +1489,7 @@ class LargeHomingBullet {
             const distY = Math.abs(this.position.y - playerPos.y);
             const proximityOpacity = THREE.MathUtils.clamp(1.0 - dist3D * 0.02 - distY * 0.05, 0.1, 0.95);
             this.mesh.material.opacity = proximityOpacity;
-            
+
             // 明るくする
             const colorFactor = (1.0 - proximityOpacity) * 0.3;
             this.mesh.material.color.copy(this.baseColor).lerp(new THREE.Color(0xffffff), colorFactor);
@@ -1513,7 +1525,7 @@ export class GimmickManager {
         this.walls = []; // Separate tracking for wall constraints
         this.mines = []; // Separate tracking for mine-bullet interaction
         this.activeModifier = null; // Track active modifier gimmick (speed/bounce)
-        
+
         // Track the last gimmick to prevent consecutive same-location spawns
         this.lastGimmick = null; // { type: string, position: THREE.Vector3 }
     }
@@ -1672,7 +1684,7 @@ export class GimmickManager {
                     // This is a simple fallback. A robust solution would be to wrap the case statements in a retry loop.
                     warningPos.x = (Math.random() > 0.5 ? 1 : -1) * (this.bounds.x * Math.random());
                     warningPos.z = (Math.random() > 0.5 ? 1 : -1) * (this.bounds.z * Math.random());
-                    
+
                     // Keep within bounds roughly
                     warningPos.x = THREE.MathUtils.clamp(warningPos.x, -this.bounds.x + 2, this.bounds.x - 2);
                     warningPos.z = THREE.MathUtils.clamp(warningPos.z, -this.bounds.z + 2, this.bounds.z - 2);
@@ -1680,7 +1692,7 @@ export class GimmickManager {
             }
 
             this.spawnWarning(warningPos, warningDuration);
-            
+
             // Record last gimmick
             this.lastGimmick = { type: type, position: warningPos.clone() };
         }
@@ -1723,7 +1735,7 @@ export class GimmickManager {
         // Update active gimmicks
         for (let i = this.activeGimmicks.length - 1; i >= 0; i--) {
             const g = this.activeGimmicks[i];
-            
+
             // Handle different update signatures
             if (g instanceof EnemyShooter || g instanceof LargeHomingBullet) {
                 g.update(deltaTime, playerPos, boundsY);
@@ -1782,10 +1794,10 @@ export class GimmickManager {
     }
 
     // Constrain player position based on walls
-    constrainPlayerPosition(playerPos, playerRadius) {
+    constrainPlayerPosition(playerPos, lastPlayerPos, playerRadius) {
         let pos = playerPos;
         for (const wall of this.walls) {
-            pos = wall.constrainPlayer(pos, playerRadius);
+            pos = wall.constrainPlayer(pos, lastPlayerPos, playerRadius);
         }
         return pos;
     }
@@ -1793,7 +1805,7 @@ export class GimmickManager {
     checkCollision(playerPos, playerRadius) {
         for (const g of this.activeGimmicks) {
             if (g.checkCollision && g.checkCollision(playerPos, playerRadius)) {
-                return g.gimmickName || 'ギミック';
+                return g.gimmickName || 'Gimmick';
             }
         }
         return null;

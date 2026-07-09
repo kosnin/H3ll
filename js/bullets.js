@@ -1,10 +1,11 @@
 // Bullets module - handles all projectile types and patterns
 import * as THREE from 'three';
 import { playLaserSound } from './audio.js';
+import settings from './settings.js';
 
 // Base Bullet class
 class Bullet {
-    constructor(scene, position, velocity, radius = 0.3, color = 0xff3366) {
+    constructor(scene, position, velocity, radius = 0.3, color = null) {
         this.scene = scene;
         this.position = position.clone();
         this.velocity = velocity.clone();
@@ -15,15 +16,24 @@ class Bullet {
         this.bounceCount = 0;
         this.maxBounces = 3;
 
-        this.baseColor = new THREE.Color(color);
-        this.createMesh(color);
+        if (color === null || color === settings.getHex('bulletColor')) {
+            // Normal Bullet: bulletColor for core sphere, arrowheadColor for outer hood
+            this.baseColor = new THREE.Color(settings.getHex('arrowheadColor')); // Hood (Arrowhead) color
+            this.coreBaseColor = new THREE.Color(settings.getHex('bulletColor')); // Core sphere color
+            this.createMesh(settings.getHex('bulletColor'));
+        } else {
+            // Other bullets (like Homing Bullet): keep original color assignments (color for outer hood, arrowheadColor for core sphere)
+            this.baseColor = new THREE.Color(color); // Hood (Arrowhead) color
+            this.coreBaseColor = new THREE.Color(settings.getHex('arrowheadColor')); // Core sphere color
+            this.createMesh(color);
+        }
     }
 
     createMesh(color) {
-        // Original sphere
+        // Original core sphere uses coreBaseColor (arrowheadColor)
         const geometry = new THREE.SphereGeometry(this.radius, 6, 4);
         const material = new THREE.MeshBasicMaterial({
-            color: color,
+            color: this.coreBaseColor,
             transparent: true,
             opacity: 0.9
         });
@@ -34,55 +44,38 @@ class Bullet {
         // Arrowhead/Hood shape
         const createArcShape = (r) => {
             const shape = new THREE.Shape();
-            const hx = r * 1.8; // half width (横幅を広げた)
+            const hx = r * 1.8; // half width
             const ty = r * 1.6; // top y (tip)
             const by = r * 0.2; // bottom y (tails)
-            
-            // 線幅・厚み（thickness）を増やして「太く」した
-            const thickness = r * 0.4; 
-            const innerTy = r * 1.2; 
-            
+
+            const thickness = r * 0.4;
+            const innerTy = r * 1.2;
+
             shape.moveTo(0, ty);
-            // 右外側
             shape.lineTo(hx, by);
-            // 右末端
             shape.lineTo(hx - thickness, by);
-            // 内側の切り込み
             shape.lineTo(0, innerTy);
-            // 左末端（内側）
             shape.lineTo(-(hx - thickness), by);
-            // 左末端
             shape.lineTo(-hx, by);
-            // 先端へ戻る
             shape.lineTo(0, ty);
-            
+
             return shape;
         };
 
         const hoodShape = createArcShape(this.radius);
-        // Add high curveSegments (32) to fix potential asymmetric triangulation/tessellation artifacts
         const hoodGeo = new THREE.ShapeGeometry(hoodShape, 32);
 
-        // Calculate complementary color (shift Hue by 180 degrees)
-        const baseColor = new THREE.Color(color);
-        const hsl = {};
-        baseColor.getHSL(hsl);
-        const compColor = new THREE.Color().setHSL((hsl.h + 0.5) % 1.0, hsl.s, hsl.l);
-
-        // Arrowhead material (complementary color)
+        // Outer Arrowhead uses baseColor (bulletColor / specific passed color)
         const hoodMat = new THREE.MeshBasicMaterial({
-            color: compColor,
+            color: this.baseColor,
             side: THREE.DoubleSide,
             transparent: true,
             opacity: 0.9
         });
-        this.hoodMat = hoodMat; // 保持しておく
+        this.hoodMat = hoodMat; // Keep reference
 
         const arrowMesh = new THREE.Mesh(hoodGeo, hoodMat);
-        // Position at the center so the inner curve precisely wraps the sphere
         arrowMesh.position.set(0, 0, 0);
-        // Rotate so +Y (the tip) points forward in the direction of movement.
-        // We flip it to Math.PI / 2 to correct the backwards pointing issue.
         arrowMesh.rotation.x = Math.PI / 2;
 
         this.mesh.add(arrowMesh);
@@ -118,14 +111,17 @@ class Bullet {
             const distY = Math.abs(this.position.y - playerPos.y);
             // 距離だけでなく高さの差も考慮して不透明度を調整
             const proximityOpacity = THREE.MathUtils.clamp(1.0 - dist3D * 0.02 - distY * 0.05, 0.1, 0.95);
+
+            // Apply opacity & brightness lerp to core sphere
             this.mesh.material.opacity = proximityOpacity;
-            
-            // 薄いもの程、色を明るく（白っぽく）する
             const colorFactor = (1.0 - proximityOpacity) * 0.3;
-            this.mesh.material.color.copy(this.baseColor).lerp(new THREE.Color(0xffffff), colorFactor);
-            
-            // 矢印パーツも薄くする
-            if (this.hoodMat) this.hoodMat.opacity = proximityOpacity;
+            this.mesh.material.color.copy(this.coreBaseColor).lerp(new THREE.Color(0xffffff), colorFactor);
+
+            // Apply opacity & brightness lerp to outer hood/arrowhead
+            if (this.hoodMat) {
+                this.hoodMat.opacity = proximityOpacity;
+                this.hoodMat.color.copy(this.baseColor).lerp(new THREE.Color(0xffffff), colorFactor);
+            }
         }
 
         // Orient the mesh to face the direction of travel
@@ -183,7 +179,7 @@ class Bullet {
 // Homing Bullet - tracks player
 class HomingBullet extends Bullet {
     constructor(scene, position, target, speed = 8) {
-        super(scene, position, new THREE.Vector3(), 0.4, 0x33ffcc);
+        super(scene, position, new THREE.Vector3(), 0.4, settings.getHex('homingBulletColor'));
         this.target = target;
         this.speed = speed;
         this.turnSpeed = 2;
@@ -220,11 +216,17 @@ class HomingBullet extends Bullet {
             const dist3D = this.position.distanceTo(playerPosition);
             const distY = Math.abs(this.position.y - playerPosition.y);
             const proximityOpacity = THREE.MathUtils.clamp(1.0 - dist3D * 0.02 - distY * 0.05, 0.1, 0.95);
+
+            // Core sphere opacity & brightness lerp
             this.mesh.material.opacity = proximityOpacity;
-            
-            // 明るくする
             const colorFactor = (1.0 - proximityOpacity) * 0.3;
-            this.mesh.material.color.copy(this.baseColor).lerp(new THREE.Color(0xffffff), colorFactor);
+            this.mesh.material.color.copy(this.coreBaseColor).lerp(new THREE.Color(0xffffff), colorFactor);
+
+            // Outer hood/arrowhead opacity & brightness lerp
+            if (this.hoodMat) {
+                this.hoodMat.opacity = proximityOpacity;
+                this.hoodMat.color.copy(this.baseColor).lerp(new THREE.Color(0xffffff), colorFactor);
+            }
         }
     }
 }
@@ -249,7 +251,7 @@ class LaserWarning {
 
         const geometry = new THREE.CylinderGeometry(0.15, 0.15, length, 6);
         const material = new THREE.MeshBasicMaterial({
-            color: 0xff4444,
+            color: settings.getHex('laserWarningColor'),
             transparent: true,
             opacity: 0.3
         });
@@ -298,7 +300,7 @@ class Laser {
         this.end = end.clone();
         this.radius = 0.8;
 
-        this.baseColor = new THREE.Color(0xffcc00);
+        this.baseColor = new THREE.Color(settings.getHex('laserColor'));
         this.createMesh();
     }
 
@@ -308,7 +310,7 @@ class Laser {
 
         const geometry = new THREE.CylinderGeometry(this.radius, this.radius, length, 8);
         const material = new THREE.MeshBasicMaterial({
-            color: 0xffcc00,
+            color: settings.getHex('laserColor'),
             transparent: true,
             opacity: 0.8
         });
@@ -326,7 +328,7 @@ class Laser {
         // Glow outline
         const glowGeo = new THREE.CylinderGeometry(this.radius * 1.5, this.radius * 1.5, length, 8);
         const glowMat = new THREE.MeshBasicMaterial({
-            color: 0xff6600,
+            color: settings.getHex('laserGlowColor'),
             transparent: true,
             opacity: 0.3,
             wireframe: true
@@ -355,7 +357,7 @@ class Laser {
             const distY = Math.abs(midpoint.y - playerPos.y);
             const proximityOpacity = THREE.MathUtils.clamp(1.0 - dist3D * 0.02 - distY * 0.05, 0.15, 0.9);
             this.mesh.material.opacity = 0.2 + Math.random() * 0.2 + proximityOpacity * 0.5;
-            
+
             // 明るくする
             const colorFactor = (1.0 - proximityOpacity) * 0.3;
             this.mesh.material.color.copy(this.baseColor).lerp(new THREE.Color(0xffffff), colorFactor);
@@ -475,7 +477,8 @@ export class BulletManager {
         return paths;
     }
 
-    spawnBullet(position, velocity, radius = 0.3, color = 0xff3366) {
+    spawnBullet(position, velocity, radius = 0.3, color = null) {
+        if (color === null) color = settings.getHex('bulletColor');
         const scaledVelocity = velocity.clone().multiplyScalar(this.speedMultiplier);
         const bullet = new Bullet(this.scene, position, scaledVelocity, radius, color);
         this.bullets.push(bullet);
@@ -534,7 +537,7 @@ export class BulletManager {
                 Math.cos(phi)
             ).multiplyScalar(speed);
 
-            this.spawnBullet(center.clone(), velocity, radius, 0xff3366);
+            this.spawnBullet(center.clone(), velocity, radius, settings.getHex('bulletColor'));
         }
     }
 
@@ -549,7 +552,7 @@ export class BulletManager {
             direction.normalize();
 
             const velocity = direction.multiplyScalar(speed);
-            this.spawnBullet(origin.clone(), velocity, 0.3, 0x33ffcc);
+            this.spawnBullet(origin.clone(), velocity, 0.3, settings.getHex('bulletColor'));
         }
     }
 
@@ -568,7 +571,7 @@ export class BulletManager {
                 .add(v.clone().multiplyScalar(Math.sin(angle)));
 
             const velocity = direction.multiplyScalar(speed);
-            this.spawnBullet(center.clone(), velocity, radius, 0xffcc00);
+            this.spawnBullet(center.clone(), velocity, radius, settings.getHex('laserColor'));
         }
     }
 
